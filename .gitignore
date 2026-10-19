@@ -1,0 +1,8 @@
+*.vsix
+node_modules/
+.env
+.env.*
+*.pem
+*.key
+.claude/
+graphify-out/

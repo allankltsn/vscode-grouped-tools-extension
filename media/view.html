@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src {{csp}}; script-src 'nonce-{{nonce}}';">
+<link rel="stylesheet" href="{{css}}"><title>Ferramentas</title></head>
+<body><main class="shell">
+<header class="controls">
+<div class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Buscar ferramenta…" aria-label="Buscar ferramenta" autocomplete="off"></div>
+<div class="context"><span>Contexto de trabalho</span><strong id="workspace">Pessoal</strong></div>
+<nav class="tabs" aria-label="Filtro de ferramentas"><button id="all" aria-pressed="true">Todas</button><button id="favorites" aria-pressed="false">Favoritos</button></nav>
+</header>
+<div class="content">
+<details id="editor" class="editor" open>
+<summary>Personalizar grupos</summary>
+<form id="group-form">
+<label>Salvar em<select id="scope"><option value="global">Global — todos os projetos</option><option value="workspace">Este projeto</option></select></label>
+<p id="scope-note" class="hint"></p>
+<label>Grupo<select id="edit-group"></select></label>
+<div class="form-grid"><label>Nome<input id="group-name" required maxlength="100" placeholder="Ex.: Variados"></label><label>Ícone<select id="group-icon"></select></label></div>
+<div id="icon-preview" aria-hidden="true"></div>
+<div id="edit-items" class="edit-items"></div>
+<label>Adicionar extensão<select id="extension-picker"><option value="">Escolha uma extensão instalada</option></select></label>
+<button id="add-command" type="button" class="secondary">Adicionar comando</button>
+<div class="form-actions"><button id="save" type="submit" class="primary">Salvar grupo</button><button id="delete-group" type="button" class="secondary">Excluir grupo</button></div>
+<button id="reset-project" type="button" class="secondary" hidden>Usar configuração global neste projeto</button>
+<p id="form-status" role="status" class="hint"></p>
+</form>
+<button id="configure" class="configure" type="button">Abrir Settings</button>
+</details>
+<div id="groups" class="groups" aria-label="Grupos de ferramentas"></div>
+<p id="empty" class="empty" hidden></p>
+</div>
+<footer><span id="summary"></span></footer>
+<div id="live" class="sr-only" aria-live="polite"></div>
+</main><script nonce="{{nonce}}" src="{{icons}}"></script><script nonce="{{nonce}}" src="{{js}}"></script></body></html>
