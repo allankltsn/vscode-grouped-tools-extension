@@ -1,8 +1,26 @@
+# Artefatos de build
 *.vsix
+dist/
+build/
 node_modules/
+
+# Segredos e credenciais (versione apenas .env.example)
 .env
 .env.*
+!.env.example
 *.pem
 *.key
-.claude/
+credentials*.json
+
+# Dados locais e gerados; o template (.claude/agents, .engineering etc.) permanece versionado
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.cache/
+.serena/cache/
+.serena/memories/
+.claude/settings.local.json
+.codex/config.local.toml
+.worktrees/
+.claude/worktrees/
 graphify-out/

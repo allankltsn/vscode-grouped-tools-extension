@@ -1,0 +1,9 @@
+{
+  "profiles": [
+    "base"
+  ],
+  "providers": [
+    "claude",
+    "codex"
+  ]
+}
