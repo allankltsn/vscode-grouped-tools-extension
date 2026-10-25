@@ -7,13 +7,10 @@
   "engines": {
     "vscode": "^1.85.0"
   },
-  "main": "./extension.js",
-  "activationEvents": [
-    "onView:groupedTools.view"
-  ],
+  "main": "./src/extension.js",
   "scripts": {
-    "check": "node --check extension.js && node --check media/view.js",
-    "test": "node --test test/provider.test.js"
+    "check": "node -e \"const fs=require('fs'),cp=require('child_process');for(const f of [...fs.readdirSync('src',{recursive:true}).filter(f=>f.endsWith('.js')).map(f=>'src/'+f),'media/view.js'])cp.execFileSync(process.execPath,['--check',f],{stdio:'inherit'})\"",
+    "test": "node --test \"test/*.test.js\""
   },
   "contributes": {
     "commands": [
