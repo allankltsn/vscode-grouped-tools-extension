@@ -1,0 +1,25 @@
+# Only package.json, README.md, LICENSE (if present), src/** and media/** ship in the VSIX.
+.engineering/**
+.claude/**
+.codex/**
+.agents/**
+.vscode/**
+.github/**
+docs/**
+test/**
+v1/**
+graphify-out/**
+node_modules/**
+.serena/**
+.worktrees/**
+*.ps1
+**/*.ps1
+*.vsix
+**/*.vsix
+AGENTS.md
+CLAUDE.md
+.env
+.env.*
+.gitignore
+.gitattributes
+.vscodeignore
