@@ -4,6 +4,24 @@
   "description": "Painel compacto de ferramentas com grupos, busca e favoritos.",
   "version": "0.0.4",
   "publisher": "local",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/allankltsn/vscode-grouped-tools-extension.git"
+  },
+  "bugs": {
+    "url": "https://github.com/allankltsn/vscode-grouped-tools-extension/issues"
+  },
+  "homepage": "https://github.com/allankltsn/vscode-grouped-tools-extension#readme",
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "tools",
+    "groups",
+    "favorites",
+    "sidebar",
+    "launcher"
+  ],
   "engines": {
     "vscode": "^1.85.0"
   },
