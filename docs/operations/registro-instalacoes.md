@@ -14,3 +14,4 @@ Location: docs/operations/registro-instalacoes.md. Rule: nothing is installed, e
 | Path | Created for | Safe to delete after |
 |---|---|---|
 | C:\Users\Allan\AppData\Local\Temp\claude\e--allan-grouped-tools\89fe6fc0-a510-44bc-9147-74970588cd4f\scratchpad\lucide | Extrair ícones do lucide-static | Após gerar media/icons.js |
+| C:\Users\Allan\AppData\Local\Temp\claude\e--allan-grouped-tools\89fe6fc0-a510-44bc-9147-74970588cd4f\scratchpad (harness.html, scenario-*.js, capturas PNG) | Verificação do painel em Edge headless já instalado (nada instalado; sem pacotes) | Ao fim da revisão |
