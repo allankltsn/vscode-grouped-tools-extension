@@ -1,0 +1,4 @@
+# Arquivos gerados e testes comparam bytes: mantenha LF em qualquer plataforma.
+* text=auto eol=lf
+*.png binary
+*.vsix binary
