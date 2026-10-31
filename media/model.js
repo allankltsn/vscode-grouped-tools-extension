@@ -251,7 +251,7 @@
   // One-line, plain-text label for the "hide the icon" tip and its clipboard copy: the name of another extension is
   // untrusted, so only letters, digits and basic punctuation survive, at most 60 characters.
   function hideName(name) {
-    return String(name).slice(0, 240).replace(/[^p{L}p{N} ._()'-]+/gu, ' ').replace(/s+/g, ' ').trim().slice(0, 60) || 'a extensão';
+    return String(name).slice(0, 240).replace(/[^\p{L}\p{N} ._()'-]+/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 60) || 'a extensão';
   }
   const hideHint = name => `Para liberar a barra de atividades: clique com o botão direito no ícone de ${hideName(name)} e escolha Ocultar.`;
 

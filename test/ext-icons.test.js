@@ -12,7 +12,8 @@ function fsOf(files) {
   const find = p => files[path.relative(ROOT, p).split(path.sep).join('/')];
   return {
     statSync: p => { const f = find(p); if (f === undefined) throw new Error('ENOENT'); return { isFile: () => true, size: Buffer.byteLength(f) }; },
-    readFileSync: p => Buffer.from(find(p))
+    readFileSync: p => Buffer.from(find(p)),
+    realpathSync: p => p
   };
 }
 const ext = (contributes, icon) => ({ id: 'p.e', extensionPath: ROOT, packageJSON: { icon, contributes } });

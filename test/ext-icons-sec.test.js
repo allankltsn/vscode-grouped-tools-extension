@@ -104,3 +104,22 @@ test('SEC-21: a real junction to an outside folder is refused', t => {
     assert.equal(resolveIcon(real, 'c1').kind, 'svg');
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
+
+test('SEC-24: without realpathSync the symlink check cannot run, so the icon is refused (fail closed)', () => {
+  const { fromFile } = require('../src/ext-icons');
+  const withReal = { ...fsOf({ 'media/c.svg': GOOD }), realpathSync: p => p };
+  assert.ok(fromFile(ROOT, 'media/c.svg', withReal));
+  assert.equal(fromFile(ROOT, 'media/c.svg', fsOf({ 'media/c.svg': GOOD })), null);
+});
+
+test('SEC-25: the webview accepts a rebuilt body above 20000 chars that the extension accepted, and still rejects hostile markup', () => {
+  const svgSafe = require('../media/svg-safe');
+  const path1 = '<path d="M0 0h1" stroke="#fff" fill="none"/>';
+  const source = `<svg viewBox="0 0 24 24">${path1.repeat(290)}<path d="M0 0${'h1'.repeat(3000)}"/></svg>`;
+  assert.ok(source.length < 20000, 'what the extension reads from disk is within MAX_SVG');
+  const clean = svgSafe.sanitizeSvg(source);
+  assert.ok(clean, 'extension side accepts it');
+  assert.ok(clean.body.length > 20000, `rebuilt body is larger than MAX_SVG: ${clean.body.length}`);
+  assert.ok(svgSafe.checkImage({ kind: 'svg', ...clean }), 'webview accepts it');
+  assert.equal(svgSafe.checkImage({ kind: 'svg', viewBox: '0 0 24 24', body: '<script/>' }), null);
+});

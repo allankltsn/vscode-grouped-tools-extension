@@ -87,8 +87,8 @@
   }
 
   // Returns { viewBox, body } or null when the icon is rejected.
-  function sanitizeSvg(text) {
-    if (typeof text !== 'string' || text.length > MAX_SVG) return null;
+  function sanitizeSvg(text, limit = MAX_SVG) {
+    if (typeof text !== 'string' || text.length > limit) return null;
     let src = text.replace(/^﻿/, '');
     if (/<!ENTITY|<!\[CDATA\[/i.test(src)) return null;
     src = stripBlocks(src, '<?xml', '?>');
@@ -145,7 +145,7 @@
     if (img.kind === 'lucide') return typeof img.name === 'string' && /^[a-z0-9-]{1,64}$/.test(img.name) ? img : null; // the webview renders it only if its local catalog has the name
     if (img.kind === 'png') return typeof img.src === 'string' && img.src.length <= 24000 && /^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(img.src) ? img : null;
     if (img.kind === 'svg') {
-      const again = typeof img.viewBox === 'string' && typeof img.body === 'string' ? sanitizeSvg(`<svg viewBox="${img.viewBox}">${img.body}</svg>`) : null;
+      const again = typeof img.viewBox === 'string' && typeof img.body === 'string' ? sanitizeSvg(`<svg viewBox="${img.viewBox}">${img.body}</svg>`, Math.floor(MAX_SVG * 1.5)) : null;
       return again && again.body === `<g>${img.body}</g>` && again.viewBox === img.viewBox ? img : null;
     }
     return null;
