@@ -78,20 +78,147 @@
           "scope": "window",
           "default": [
             {
-              "name": "IA e assistentes",
+              "name": "Claude e IA",
               "icon": "sparkle",
               "items": [
                 {
-                  "name": "Localizar comando de IA",
-                  "command": "workbench.action.showCommands",
+                  "name": "Claude Code",
+                  "command": "workbench.view.extension.claude-sidebar",
+                  "icon": "sparkle"
+                },
+                {
+                  "name": "Claude Code: sessões",
+                  "command": "workbench.view.extension.claude-sessions-sidebar",
+                  "icon": "sparkle"
+                },
+                {
+                  "name": "Claude Code Chat",
+                  "command": "workbench.view.extension.claude-code-chat",
+                  "icon": "sparkle"
+                },
+                {
+                  "name": "Claude Control",
+                  "command": "workbench.view.extension.claudeControl",
+                  "icon": "settings"
+                },
+                {
+                  "name": "Claude Lens",
+                  "command": "workbench.view.extension.claude-lens",
+                  "icon": "search"
+                },
+                {
+                  "name": "Claude Lens (uso)",
+                  "command": "workbench.view.extension.claudeLens",
+                  "icon": "search"
+                },
+                {
+                  "name": "Claude Code Graph",
+                  "command": "workbench.view.extension.claudeIntel",
+                  "icon": "code"
+                },
+                {
+                  "name": "Codex (OpenAI)",
+                  "command": "workbench.view.extension.codexViewContainer",
                   "icon": "terminal"
+                },
+                {
+                  "name": "Codex Build",
+                  "command": "workbench.view.extension.codex-sidebar-view",
+                  "icon": "terminal"
+                },
+                {
+                  "name": "CodeCursor",
+                  "command": "workbench.view.extension.aicursor",
+                  "icon": "sparkle"
+                },
+                {
+                  "name": "Tabnine AI",
+                  "command": "workbench.view.extension.tabnine",
+                  "icon": "sparkle"
                 }
               ]
             },
             {
-              "name": "Cloud e infraestrutura",
+              "name": "Git e GitHub",
+              "icon": "code",
+              "items": [
+                {
+                  "name": "Controle de código-fonte",
+                  "command": "workbench.view.scm",
+                  "icon": "code"
+                },
+                {
+                  "name": "GitLens",
+                  "command": "workbench.view.extension.gitlens",
+                  "icon": "code"
+                },
+                {
+                  "name": "GitLens: inspecionar",
+                  "command": "workbench.view.extension.gitlensInspect",
+                  "icon": "search"
+                },
+                {
+                  "name": "Pull requests e issues",
+                  "command": "workbench.view.extension.github-pull-requests",
+                  "icon": "code"
+                },
+                {
+                  "name": "GitHub Actions",
+                  "command": "workbench.view.extension.github-actions",
+                  "icon": "play"
+                },
+                {
+                  "name": "Git Graph",
+                  "command": "git-graph.view",
+                  "icon": "code"
+                }
+              ]
+            },
+            {
+              "name": "Bancos de dados",
+              "icon": "database",
+              "items": [
+                {
+                  "name": "Database Client",
+                  "command": "workbench.view.extension.github-cweijan-mysql",
+                  "icon": "database"
+                },
+                {
+                  "name": "Database Client: serviços",
+                  "command": "workbench.view.extension.github-cweijan-nosql",
+                  "icon": "database"
+                },
+                {
+                  "name": "Histórico SQL",
+                  "command": "workbench.view.extension.github-dbclient-history",
+                  "icon": "search"
+                },
+                {
+                  "name": "PostgreSQL",
+                  "command": "workbench.view.extension.pgObjectExplorer",
+                  "icon": "database"
+                },
+                {
+                  "name": "Prisma",
+                  "command": "workbench.view.extension.prismaActivitybar",
+                  "icon": "database"
+                }
+              ]
+            },
+            {
+              "name": "Containers e remoto",
               "icon": "cloud",
               "items": [
+                {
+                  "name": "Containers (Docker)",
+                  "command": "workbench.view.extension.containersView",
+                  "icon": "cloud"
+                },
+                {
+                  "name": "Explorador remoto",
+                  "command": "workbench.view.remote",
+                  "icon": "cloud"
+                },
                 {
                   "name": "Abrir terminal",
                   "command": "workbench.action.terminal.toggleTerminal",
@@ -101,6 +228,58 @@
                   "name": "Executar tarefa",
                   "command": "workbench.action.tasks.runTask",
                   "icon": "play"
+                }
+              ]
+            },
+            {
+              "name": "Diagramas e planejamento",
+              "icon": "kanban",
+              "items": [
+                {
+                  "name": "Diagram Forge",
+                  "command": "workbench.view.extension.diagram-forge",
+                  "icon": "kanban"
+                },
+                {
+                  "name": "Archify",
+                  "command": "workbench.view.extension.archify",
+                  "icon": "kanban"
+                },
+                {
+                  "name": "Kanban Markdown",
+                  "command": "workbench.view.extension.kanban-markdown",
+                  "icon": "kanban"
+                }
+              ]
+            },
+            {
+              "name": "Linguagens e notebooks",
+              "icon": "code",
+              "items": [
+                {
+                  "name": "Python",
+                  "command": "workbench.view.extension.python",
+                  "icon": "code"
+                },
+                {
+                  "name": "Jupyter",
+                  "command": "workbench.view.extension.jupyter",
+                  "icon": "code"
+                },
+                {
+                  "name": "PowerShell",
+                  "command": "workbench.view.extension.PowerShell",
+                  "icon": "terminal"
+                },
+                {
+                  "name": "Makefile",
+                  "command": "workbench.view.extension.makefile__viewContainer",
+                  "icon": "code"
+                },
+                {
+                  "name": "Corretor ortográfico",
+                  "command": "workbench.view.extension.cspell-info-explorer",
+                  "icon": "search"
                 }
               ]
             },

@@ -76,7 +76,7 @@ test('provider: data, favorites, command whitelist and configuration refresh', a
   await send({ type: 'run', id: 'invented', command: 'untrusted' });
   assert.equal(calls.length, 0);
   await send({ type: 'run', id: '0:0' });
-  assert.equal(calls[0][0], 'workbench.action.showCommands');
+  assert.equal(calls[0][0], 'workbench.view.extension.claude-sidebar');
   await send({ type: 'favorite', id: '0:0' });
   assert.equal(messages.at(-1).groups[0].items[0].favorite, false);
   groups[0].name = 'Updated'; handlers.config[0]({ affectsConfiguration: () => true });

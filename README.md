@@ -76,8 +76,23 @@ Posicionamento: https://code.visualstudio.com/api/ux-guidelines/sidebars
 - test/: config.test.js, commands.test.js e provider.test.js.
 - v1/: versão anterior, mantida só como referência; não entra no pacote.
 
+## Grupos padrão
+
+Os padrões agrupam por tema os painéis que normalmente ocupam a Activity Bar. Cada atalho abre o painel original (workbench.view.extension.<id do contêiner>) e só funciona se a extensão estiver instalada.
+
+| Grupo | Atalhos |
+| --- | --- |
+| Claude e IA | Claude Code (sidebar e sessões), Claude Code Chat, Claude Control, Claude Lens, Claude Code Graph, Codex, CodeCursor, Tabnine |
+| Git e GitHub | Controle de código-fonte, GitLens, Pull requests e issues, GitHub Actions, Git Graph |
+| Bancos de dados | Database Client, PostgreSQL, Prisma |
+| Containers e remoto | Docker, Explorador remoto, terminal, tarefas |
+| Diagramas e planejamento | Diagram Forge, Archify, Kanban Markdown |
+| Linguagens e notebooks | Python, Jupyter, PowerShell, Makefile, corretor ortográfico |
+| Qualidade e testes | Problemas, Testes |
+| Variados | Spotify, ClickUp |
+
 ## Grupo Variados
 
-Incluído por padrão com ícone plus e atalhos Spotify e ClickUp. Os atalhos abrem os painéis originais das extensões shyykoserhiy.vscode-spotify e mcdev.clickup-kanban, que precisam estar instaladas. Não há substituição de grupos neste workspace por padrão. Configurações personalizadas em outros workspaces prevalecem sobre os padrões.
+Ícone plus e atalhos Spotify e ClickUp. Os atalhos abrem os painéis originais das extensões shyykoserhiy.vscode-spotify e mcdev.clickup-kanban, que precisam estar instaladas. Não há substituição de grupos neste workspace por padrão. Configurações personalizadas em outros workspaces prevalecem sobre os padrões.
 
 Ícones de grupos e itens também aceitam plus, music e kanban.
