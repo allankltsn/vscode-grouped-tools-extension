@@ -1,4 +1,12 @@
-# Arquivos gerados e testes comparam bytes: mantenha LF em qualquer plataforma.
+# Arquivos do projeto: scripts e testes comparam bytes, entao LF em qualquer plataforma.
 * text=auto eol=lf
 *.png binary
 *.vsix binary
+
+# Arquivos materializados pelo engineering-template: o manifesto guarda o hash da versao CRLF.
+/.agents/** text eol=crlf
+/.claude/** text eol=crlf
+/.codex/** text eol=crlf
+/.engineering/** text eol=crlf
+/CLAUDE.md text eol=crlf
+/AGENTS.md text eol=crlf
