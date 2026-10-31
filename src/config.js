@@ -135,4 +135,4 @@ function validateGroups(groups, { scope = 'global' } = {}) {
 
 function pinnedGroups(groups) { return groups.filter(g => g.pinned === true); }
 
-module.exports = { readGroups, validateGroups, favoriteKey, extensionContainer, pinnedGroups, cleanText, isBlockedCommand, BLOCKED_COMMANDS, RECURSIVE_COMMAND, COLORS, NEUTRAL_COLOR, MAX_GROUPS, MAX_NAME, MAX_ITEM_NAME, MAX_COMMAND };
+module.exports = { readGroups, validateGroups, favoriteKey, extensionContainer, pinnedGroups, cleanText, isBlockedCommand, BLOCKED_COMMANDS, RECURSIVE_COMMAND, COLORS, NEUTRAL_COLOR, ID_PATTERN, MAX_GROUPS, MAX_NAME, MAX_ITEM_NAME, MAX_COMMAND };
