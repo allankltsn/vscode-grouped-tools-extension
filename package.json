@@ -1,7 +1,7 @@
 {
   "name": "grouped-tools",
   "displayName": "Ferramentas agrupadas",
-  "description": "Painel compacto de ferramentas com grupos, busca e favoritos.",
+  "description": "Painel compacto de ferramentas com grupos, busca, favoritos, organização por arrastar e grupos fixados na barra de atividades.",
   "version": "0.0.4",
   "publisher": "local",
   "repository": {
@@ -27,8 +27,9 @@
   },
   "main": "./src/extension.js",
   "scripts": {
-    "check": "node -e \"const fs=require('fs'),cp=require('child_process');for(const f of [...fs.readdirSync('src',{recursive:true}).filter(f=>f.endsWith('.js')).map(f=>'src/'+f),'media/view.js'])cp.execFileSync(process.execPath,['--check',f],{stdio:'inherit'})\"",
-    "test": "node --test \"test/*.test.js\""
+    "check": "node -e \"const fs=require('fs'),cp=require('child_process');for(const f of [...fs.readdirSync('src',{recursive:true}).filter(f=>f.endsWith('.js')).map(f=>'src/'+f),...fs.readdirSync('media').filter(f=>f.endsWith('.js')&&f!=='icons.js').map(f=>'media/'+f),...fs.readdirSync('scripts').filter(f=>f.endsWith('.js')).map(f=>'scripts/'+f)])cp.execFileSync(process.execPath,['--check',f],{stdio:'inherit'})\"",
+    "test": "node --test \"test/*.test.js\"",
+    "build:pins": "node scripts/build-pins.js"
   },
   "contributes": {
     "commands": [
@@ -40,6 +41,22 @@
         "command": "groupedTools.configure",
         "title": "Ferramentas: configurar grupos",
         "icon": "$(gear)"
+      },
+      {
+        "command": "groupedTools.toggleFold",
+        "title": "Ferramentas: recolher ou expandir todos os grupos"
+      },
+      {
+        "command": "groupedTools.openGroup",
+        "title": "Ferramentas: abrir grupo"
+      },
+      {
+        "command": "groupedTools.manageGroup",
+        "title": "Ferramentas: gerenciar grupo"
+      },
+      {
+        "command": "groupedTools.runById",
+        "title": "Ferramentas: abrir item de grupo fixado"
       }
     ],
     "viewsContainers": {
@@ -48,6 +65,206 @@
           "id": "groupedTools",
           "title": "Ferramentas",
           "icon": "media/tools.svg"
+        },
+        {
+          "id": "groupedTools.pin.sparkles",
+          "title": "Ferramentas · IA",
+          "icon": "media/pin/sparkles.svg"
+        },
+        {
+          "id": "groupedTools.pin.bot",
+          "title": "Ferramentas · Robô",
+          "icon": "media/pin/bot.svg"
+        },
+        {
+          "id": "groupedTools.pin.git-branch",
+          "title": "Ferramentas · Git",
+          "icon": "media/pin/git-branch.svg"
+        },
+        {
+          "id": "groupedTools.pin.git-pull-request",
+          "title": "Ferramentas · Pull requests",
+          "icon": "media/pin/git-pull-request.svg"
+        },
+        {
+          "id": "groupedTools.pin.database",
+          "title": "Ferramentas · Banco de dados",
+          "icon": "media/pin/database.svg"
+        },
+        {
+          "id": "groupedTools.pin.server",
+          "title": "Ferramentas · Servidor",
+          "icon": "media/pin/server.svg"
+        },
+        {
+          "id": "groupedTools.pin.container",
+          "title": "Ferramentas · Contêiner",
+          "icon": "media/pin/container.svg"
+        },
+        {
+          "id": "groupedTools.pin.box",
+          "title": "Ferramentas · Caixa",
+          "icon": "media/pin/box.svg"
+        },
+        {
+          "id": "groupedTools.pin.cloud",
+          "title": "Ferramentas · Nuvem",
+          "icon": "media/pin/cloud.svg"
+        },
+        {
+          "id": "groupedTools.pin.terminal",
+          "title": "Ferramentas · Terminal",
+          "icon": "media/pin/terminal.svg"
+        },
+        {
+          "id": "groupedTools.pin.code",
+          "title": "Ferramentas · Código",
+          "icon": "media/pin/code.svg"
+        },
+        {
+          "id": "groupedTools.pin.folder",
+          "title": "Ferramentas · Pasta",
+          "icon": "media/pin/folder.svg"
+        },
+        {
+          "id": "groupedTools.pin.kanban",
+          "title": "Ferramentas · Quadro",
+          "icon": "media/pin/kanban.svg"
+        },
+        {
+          "id": "groupedTools.pin.workflow",
+          "title": "Ferramentas · Fluxo",
+          "icon": "media/pin/workflow.svg"
+        },
+        {
+          "id": "groupedTools.pin.flask-conical",
+          "title": "Ferramentas · Laboratório",
+          "icon": "media/pin/flask-conical.svg"
+        },
+        {
+          "id": "groupedTools.pin.bug",
+          "title": "Ferramentas · Depuração",
+          "icon": "media/pin/bug.svg"
+        },
+        {
+          "id": "groupedTools.pin.shield",
+          "title": "Ferramentas · Segurança",
+          "icon": "media/pin/shield.svg"
+        },
+        {
+          "id": "groupedTools.pin.rocket",
+          "title": "Ferramentas · Foguete",
+          "icon": "media/pin/rocket.svg"
+        },
+        {
+          "id": "groupedTools.pin.puzzle",
+          "title": "Ferramentas · Extensões",
+          "icon": "media/pin/puzzle.svg"
+        },
+        {
+          "id": "groupedTools.pin.settings",
+          "title": "Ferramentas · Configurações",
+          "icon": "media/pin/settings.svg"
+        },
+        {
+          "id": "groupedTools.pin.wrench",
+          "title": "Ferramentas · Ferramenta",
+          "icon": "media/pin/wrench.svg"
+        },
+        {
+          "id": "groupedTools.pin.package",
+          "title": "Ferramentas · Pacote",
+          "icon": "media/pin/package.svg"
+        },
+        {
+          "id": "groupedTools.pin.layers",
+          "title": "Ferramentas · Camadas",
+          "icon": "media/pin/layers.svg"
+        },
+        {
+          "id": "groupedTools.pin.palette",
+          "title": "Ferramentas · Paleta",
+          "icon": "media/pin/palette.svg"
+        },
+        {
+          "id": "groupedTools.pin.notebook-pen",
+          "title": "Ferramentas · Caderno",
+          "icon": "media/pin/notebook-pen.svg"
+        },
+        {
+          "id": "groupedTools.pin.calendar",
+          "title": "Ferramentas · Calendário",
+          "icon": "media/pin/calendar.svg"
+        },
+        {
+          "id": "groupedTools.pin.headphones",
+          "title": "Ferramentas · Música",
+          "icon": "media/pin/headphones.svg"
+        },
+        {
+          "id": "groupedTools.pin.mail",
+          "title": "Ferramentas · E-mail",
+          "icon": "media/pin/mail.svg"
+        },
+        {
+          "id": "groupedTools.pin.message-square",
+          "title": "Ferramentas · Mensagens",
+          "icon": "media/pin/message-square.svg"
+        },
+        {
+          "id": "groupedTools.pin.chart-bar",
+          "title": "Ferramentas · Gráficos",
+          "icon": "media/pin/chart-bar.svg"
+        },
+        {
+          "id": "groupedTools.pin.globe",
+          "title": "Ferramentas · Web",
+          "icon": "media/pin/globe.svg"
+        },
+        {
+          "id": "groupedTools.pin.network",
+          "title": "Ferramentas · Rede",
+          "icon": "media/pin/network.svg"
+        },
+        {
+          "id": "groupedTools.pin.cpu",
+          "title": "Ferramentas · Processador",
+          "icon": "media/pin/cpu.svg"
+        },
+        {
+          "id": "groupedTools.pin.brain",
+          "title": "Ferramentas · Cérebro",
+          "icon": "media/pin/brain.svg"
+        },
+        {
+          "id": "groupedTools.pin.key",
+          "title": "Ferramentas · Chave",
+          "icon": "media/pin/key.svg"
+        },
+        {
+          "id": "groupedTools.pin.star",
+          "title": "Ferramentas · Estrela",
+          "icon": "media/pin/star.svg"
+        },
+        {
+          "id": "groupedTools.pin.heart",
+          "title": "Ferramentas · Coração",
+          "icon": "media/pin/heart.svg"
+        },
+        {
+          "id": "groupedTools.pin.bookmark",
+          "title": "Ferramentas · Marcador",
+          "icon": "media/pin/bookmark.svg"
+        },
+        {
+          "id": "groupedTools.pin.zap",
+          "title": "Ferramentas · Raio",
+          "icon": "media/pin/zap.svg"
+        },
+        {
+          "id": "groupedTools.pin.flame",
+          "title": "Ferramentas · Chama",
+          "icon": "media/pin/flame.svg"
         }
       ]
     },
@@ -59,6 +276,326 @@
           "type": "webview",
           "icon": "media/tools.svg"
         }
+      ],
+      "groupedTools.pin.sparkles": [
+        {
+          "id": "groupedTools.pin.sparkles.view",
+          "name": "Ferramentas · IA",
+          "type": "webview",
+          "when": "groupedTools.pinned.sparkles"
+        }
+      ],
+      "groupedTools.pin.bot": [
+        {
+          "id": "groupedTools.pin.bot.view",
+          "name": "Ferramentas · Robô",
+          "type": "webview",
+          "when": "groupedTools.pinned.bot"
+        }
+      ],
+      "groupedTools.pin.git-branch": [
+        {
+          "id": "groupedTools.pin.git-branch.view",
+          "name": "Ferramentas · Git",
+          "type": "webview",
+          "when": "groupedTools.pinned.git_branch"
+        }
+      ],
+      "groupedTools.pin.git-pull-request": [
+        {
+          "id": "groupedTools.pin.git-pull-request.view",
+          "name": "Ferramentas · Pull requests",
+          "type": "webview",
+          "when": "groupedTools.pinned.git_pull_request"
+        }
+      ],
+      "groupedTools.pin.database": [
+        {
+          "id": "groupedTools.pin.database.view",
+          "name": "Ferramentas · Banco de dados",
+          "type": "webview",
+          "when": "groupedTools.pinned.database"
+        }
+      ],
+      "groupedTools.pin.server": [
+        {
+          "id": "groupedTools.pin.server.view",
+          "name": "Ferramentas · Servidor",
+          "type": "webview",
+          "when": "groupedTools.pinned.server"
+        }
+      ],
+      "groupedTools.pin.container": [
+        {
+          "id": "groupedTools.pin.container.view",
+          "name": "Ferramentas · Contêiner",
+          "type": "webview",
+          "when": "groupedTools.pinned.container"
+        }
+      ],
+      "groupedTools.pin.box": [
+        {
+          "id": "groupedTools.pin.box.view",
+          "name": "Ferramentas · Caixa",
+          "type": "webview",
+          "when": "groupedTools.pinned.box"
+        }
+      ],
+      "groupedTools.pin.cloud": [
+        {
+          "id": "groupedTools.pin.cloud.view",
+          "name": "Ferramentas · Nuvem",
+          "type": "webview",
+          "when": "groupedTools.pinned.cloud"
+        }
+      ],
+      "groupedTools.pin.terminal": [
+        {
+          "id": "groupedTools.pin.terminal.view",
+          "name": "Ferramentas · Terminal",
+          "type": "webview",
+          "when": "groupedTools.pinned.terminal"
+        }
+      ],
+      "groupedTools.pin.code": [
+        {
+          "id": "groupedTools.pin.code.view",
+          "name": "Ferramentas · Código",
+          "type": "webview",
+          "when": "groupedTools.pinned.code"
+        }
+      ],
+      "groupedTools.pin.folder": [
+        {
+          "id": "groupedTools.pin.folder.view",
+          "name": "Ferramentas · Pasta",
+          "type": "webview",
+          "when": "groupedTools.pinned.folder"
+        }
+      ],
+      "groupedTools.pin.kanban": [
+        {
+          "id": "groupedTools.pin.kanban.view",
+          "name": "Ferramentas · Quadro",
+          "type": "webview",
+          "when": "groupedTools.pinned.kanban"
+        }
+      ],
+      "groupedTools.pin.workflow": [
+        {
+          "id": "groupedTools.pin.workflow.view",
+          "name": "Ferramentas · Fluxo",
+          "type": "webview",
+          "when": "groupedTools.pinned.workflow"
+        }
+      ],
+      "groupedTools.pin.flask-conical": [
+        {
+          "id": "groupedTools.pin.flask-conical.view",
+          "name": "Ferramentas · Laboratório",
+          "type": "webview",
+          "when": "groupedTools.pinned.flask_conical"
+        }
+      ],
+      "groupedTools.pin.bug": [
+        {
+          "id": "groupedTools.pin.bug.view",
+          "name": "Ferramentas · Depuração",
+          "type": "webview",
+          "when": "groupedTools.pinned.bug"
+        }
+      ],
+      "groupedTools.pin.shield": [
+        {
+          "id": "groupedTools.pin.shield.view",
+          "name": "Ferramentas · Segurança",
+          "type": "webview",
+          "when": "groupedTools.pinned.shield"
+        }
+      ],
+      "groupedTools.pin.rocket": [
+        {
+          "id": "groupedTools.pin.rocket.view",
+          "name": "Ferramentas · Foguete",
+          "type": "webview",
+          "when": "groupedTools.pinned.rocket"
+        }
+      ],
+      "groupedTools.pin.puzzle": [
+        {
+          "id": "groupedTools.pin.puzzle.view",
+          "name": "Ferramentas · Extensões",
+          "type": "webview",
+          "when": "groupedTools.pinned.puzzle"
+        }
+      ],
+      "groupedTools.pin.settings": [
+        {
+          "id": "groupedTools.pin.settings.view",
+          "name": "Ferramentas · Configurações",
+          "type": "webview",
+          "when": "groupedTools.pinned.settings"
+        }
+      ],
+      "groupedTools.pin.wrench": [
+        {
+          "id": "groupedTools.pin.wrench.view",
+          "name": "Ferramentas · Ferramenta",
+          "type": "webview",
+          "when": "groupedTools.pinned.wrench"
+        }
+      ],
+      "groupedTools.pin.package": [
+        {
+          "id": "groupedTools.pin.package.view",
+          "name": "Ferramentas · Pacote",
+          "type": "webview",
+          "when": "groupedTools.pinned.package"
+        }
+      ],
+      "groupedTools.pin.layers": [
+        {
+          "id": "groupedTools.pin.layers.view",
+          "name": "Ferramentas · Camadas",
+          "type": "webview",
+          "when": "groupedTools.pinned.layers"
+        }
+      ],
+      "groupedTools.pin.palette": [
+        {
+          "id": "groupedTools.pin.palette.view",
+          "name": "Ferramentas · Paleta",
+          "type": "webview",
+          "when": "groupedTools.pinned.palette"
+        }
+      ],
+      "groupedTools.pin.notebook-pen": [
+        {
+          "id": "groupedTools.pin.notebook-pen.view",
+          "name": "Ferramentas · Caderno",
+          "type": "webview",
+          "when": "groupedTools.pinned.notebook_pen"
+        }
+      ],
+      "groupedTools.pin.calendar": [
+        {
+          "id": "groupedTools.pin.calendar.view",
+          "name": "Ferramentas · Calendário",
+          "type": "webview",
+          "when": "groupedTools.pinned.calendar"
+        }
+      ],
+      "groupedTools.pin.headphones": [
+        {
+          "id": "groupedTools.pin.headphones.view",
+          "name": "Ferramentas · Música",
+          "type": "webview",
+          "when": "groupedTools.pinned.headphones"
+        }
+      ],
+      "groupedTools.pin.mail": [
+        {
+          "id": "groupedTools.pin.mail.view",
+          "name": "Ferramentas · E-mail",
+          "type": "webview",
+          "when": "groupedTools.pinned.mail"
+        }
+      ],
+      "groupedTools.pin.message-square": [
+        {
+          "id": "groupedTools.pin.message-square.view",
+          "name": "Ferramentas · Mensagens",
+          "type": "webview",
+          "when": "groupedTools.pinned.message_square"
+        }
+      ],
+      "groupedTools.pin.chart-bar": [
+        {
+          "id": "groupedTools.pin.chart-bar.view",
+          "name": "Ferramentas · Gráficos",
+          "type": "webview",
+          "when": "groupedTools.pinned.chart_bar"
+        }
+      ],
+      "groupedTools.pin.globe": [
+        {
+          "id": "groupedTools.pin.globe.view",
+          "name": "Ferramentas · Web",
+          "type": "webview",
+          "when": "groupedTools.pinned.globe"
+        }
+      ],
+      "groupedTools.pin.network": [
+        {
+          "id": "groupedTools.pin.network.view",
+          "name": "Ferramentas · Rede",
+          "type": "webview",
+          "when": "groupedTools.pinned.network"
+        }
+      ],
+      "groupedTools.pin.cpu": [
+        {
+          "id": "groupedTools.pin.cpu.view",
+          "name": "Ferramentas · Processador",
+          "type": "webview",
+          "when": "groupedTools.pinned.cpu"
+        }
+      ],
+      "groupedTools.pin.brain": [
+        {
+          "id": "groupedTools.pin.brain.view",
+          "name": "Ferramentas · Cérebro",
+          "type": "webview",
+          "when": "groupedTools.pinned.brain"
+        }
+      ],
+      "groupedTools.pin.key": [
+        {
+          "id": "groupedTools.pin.key.view",
+          "name": "Ferramentas · Chave",
+          "type": "webview",
+          "when": "groupedTools.pinned.key"
+        }
+      ],
+      "groupedTools.pin.star": [
+        {
+          "id": "groupedTools.pin.star.view",
+          "name": "Ferramentas · Estrela",
+          "type": "webview",
+          "when": "groupedTools.pinned.star"
+        }
+      ],
+      "groupedTools.pin.heart": [
+        {
+          "id": "groupedTools.pin.heart.view",
+          "name": "Ferramentas · Coração",
+          "type": "webview",
+          "when": "groupedTools.pinned.heart"
+        }
+      ],
+      "groupedTools.pin.bookmark": [
+        {
+          "id": "groupedTools.pin.bookmark.view",
+          "name": "Ferramentas · Marcador",
+          "type": "webview",
+          "when": "groupedTools.pinned.bookmark"
+        }
+      ],
+      "groupedTools.pin.zap": [
+        {
+          "id": "groupedTools.pin.zap.view",
+          "name": "Ferramentas · Raio",
+          "type": "webview",
+          "when": "groupedTools.pinned.zap"
+        }
+      ],
+      "groupedTools.pin.flame": [
+        {
+          "id": "groupedTools.pin.flame.view",
+          "name": "Ferramentas · Chama",
+          "type": "webview",
+          "when": "groupedTools.pinned.flame"
+        }
       ]
     },
     "menus": {
@@ -67,6 +604,24 @@
           "command": "groupedTools.configure",
           "when": "view == groupedTools.view",
           "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "groupedTools.run",
+          "when": "false"
+        },
+        {
+          "command": "groupedTools.openGroup",
+          "when": "false"
+        },
+        {
+          "command": "groupedTools.manageGroup",
+          "when": "false"
+        },
+        {
+          "command": "groupedTools.runById",
+          "when": "false"
         }
       ]
     },
@@ -325,12 +880,39 @@
             ],
             "additionalProperties": false,
             "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,64}$",
+                "description": "Identificador estável do grupo (gerado pelo painel)."
+              },
               "name": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "maxLength": 100
               },
               "icon": {
-                "type": "string"
+                "type": "string",
+                "description": "Nome de um ícone Lucide (ex.: database)."
+              },
+              "color": {
+                "type": "string",
+                "enum": [
+                  "g-1",
+                  "g-2",
+                  "g-3",
+                  "g-4",
+                  "g-5",
+                  "g-6",
+                  "g-7",
+                  "g-8",
+                  "g-9",
+                  "g-10"
+                ],
+                "description": "Cor do grupo na paleta fixa g-1..g-10."
+              },
+              "pinned": {
+                "type": "boolean",
+                "description": "Fixa o grupo na barra de atividades e na barra de status. Vale só na configuração do usuário (Global); o ícone do grupo precisa estar no catálogo de ícones fixáveis e só um grupo pode usar cada ícone."
               },
               "items": {
                 "type": "array",
@@ -355,6 +937,11 @@
                     },
                     "args": {
                       "type": "array"
+                    },
+                    "extensionId": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*\\.[A-Za-z0-9][A-Za-z0-9._-]*$",
+                      "description": "Extensão dona do atalho (usada para detectar atalhos quebrados)."
                     }
                   }
                 }
@@ -363,6 +950,16 @@
           }
         }
       }
-    }
-  }
+    },
+    "keybindings": [
+      {
+        "command": "groupedTools.toggleFold",
+        "key": "alt+shift+c",
+        "when": "focusedView == groupedTools.view"
+      }
+    ]
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ]
 }
