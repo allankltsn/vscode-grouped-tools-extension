@@ -1,35 +1,10 @@
 {
     "groupedTools.groups": [
         {
-            "name": "IA e assistentes",
-            "icon": "sparkle",
-            "items": [
-                {
-                    "name": "Localizar comando de IA",
-                    "command": "workbench.action.showCommands",
-                    "icon": "terminal"
-                }
-            ]
-        },
-        {
-            "name": "Cloud e infraestrutura",
-            "icon": "cloud",
-            "items": [
-                {
-                    "name": "Abrir terminal",
-                    "command": "workbench.action.terminal.toggleTerminal",
-                    "icon": "terminal"
-                },
-                {
-                    "name": "Executar tarefa",
-                    "command": "workbench.action.tasks.runTask",
-                    "icon": "play"
-                }
-            ]
-        },
-        {
+            "id": "qualidade-testes",
             "name": "Qualidade e testes",
             "icon": "beaker",
+            "color": "g-7",
             "items": [
                 {
                     "name": "Problemas",
