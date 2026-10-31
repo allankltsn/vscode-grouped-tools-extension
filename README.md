@@ -61,7 +61,7 @@ O posicionamento e os controles para recolher a barra são administrados pelo VS
 
 ## Grupos fixados
 
-⋯ do grupo > **Fixar na barra de atividades** (só no escopo Global). O grupo ganha um ícone na barra de atividades com o **mesmo ícone do grupo** e um item na barra de status (`Nome (N)`, à esquerda) com um card nativo que lista as extensões e abre cada uma. Clicar em qualquer um abre o painel com os outros grupos recolhidos, rola até o grupo, destaca e foca; o ícone principal Ferramentas restaura o recolhimento anterior.
+⋯ do grupo > **Fixar na barra de atividades e na barra de status** (só no escopo Global). O grupo ganha um ícone na barra de atividades com o **mesmo ícone do grupo** e um item na barra de status (`Nome (N)`, à esquerda) com um card nativo que lista as extensões e abre cada uma. Clicar em qualquer um abre o painel com os outros grupos recolhidos, rola até o grupo, destaca e foca; o ícone principal Ferramentas restaura o recolhimento anterior.
 
 Limites da plataforma: o ícone da barra de atividades é um arquivo estático, por isso só ícones do catálogo curado (media/pin-catalog.js, 40 ícones) podem ser fixados, **um grupo por ícone**; o hover da barra de atividades mostra só o título "Ferramentas · <ícone>" (não o nome nem a cor do grupo); o excedente da barra de status é cortado pelo VS Code. Os contêineres, views e SVGs são gerados: `node scripts/build-pins.js` (`--check` verifica; o teste compara).
 

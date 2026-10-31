@@ -131,3 +131,14 @@ test('tools.svg: same Lucide icon as the prototype (blocks), generated, allowlis
   assert.match(fs.readFileSync(path.join(root, 'docs', 'design', 'redesenho', 'prototipo', 'prototipo.js'), 'utf8'), /ic\('blocks'\), 'Ferramentas agrupadas'/);
   assert.equal(pkg.contributes.viewsContainers.activitybar[0].icon, 'media/tools.svg');
 });
+
+test('pin menu text says both places; pinning creates both, unpinning removes both (model + manager)', () => {
+  const view = fs.readFileSync(path.join(root, 'media', 'view.js'), 'utf8');
+  assert.ok(view.includes("'Fixar na barra de atividades e na barra de status'"));
+  assert.ok(view.includes("'Desafixar da barra de atividades e da barra de status'"));
+  assert.ok(!view.includes("label: 'Fixar na barra de atividades'"));
+  const M = require('../media/model');
+  const pinned = M.setPinned([{ id: 'a', name: 'A', icon: 'database', items: [] }], 'a', true).groups;
+  assert.equal(pinned[0].pinned, true);
+  assert.equal('pinned' in M.setPinned(pinned, 'a', false).groups[0], false);
+});

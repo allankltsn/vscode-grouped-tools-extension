@@ -372,30 +372,30 @@
   function pinAnchor(gid) { return $(`[data-fid="gk:${cssq(gid)}"]`, app) || btnOrg; }
   function pinMenuItems(g) {
     const st = M.pinState(groups, g, activeScope());
-    if (st.state === 'scope') return [{ label: isPinned(g) ? 'Desafixar da barra de atividades' : 'Fixar na barra de atividades', hint: 'Itens fixados valem para todos os projetos; edite no escopo Global', ic: 'pin', soft: true }];
-    if (st.state === 'pinned') return [{ label: 'Desafixar da barra de atividades', hint: `O ícone “${pinName(g.icon)}” sai da barra e fica livre`, ic: 'pin', go() { unpinGroup(g.id); } }];
-    if (st.state === 'free') return [{ label: 'Fixar na barra de atividades', hint: `Aparece na barra com o ícone “${pinName(g.icon)}”`, ic: 'pin', go() { pinGroup(g.id); } }];
+    if (st.state === 'scope') return [{ label: isPinned(g) ? 'Desafixar da barra de atividades e da barra de status' : 'Fixar na barra de atividades e na barra de status', hint: 'Itens fixados valem para todos os projetos; edite no escopo Global', ic: 'pin', soft: true }];
+    if (st.state === 'pinned') return [{ label: 'Desafixar da barra de atividades e da barra de status', hint: `O ícone “${pinName(g.icon)}” sai da barra e fica livre`, ic: 'pin', go() { unpinGroup(g.id); } }];
+    if (st.state === 'free') return [{ label: 'Fixar na barra de atividades e na barra de status', hint: `Aparece na barra com o ícone “${pinName(g.icon)}”`, ic: 'pin', go() { pinGroup(g.id); } }];
     if (st.state === 'conflict') {
       return [
-        { label: 'Fixar na barra de atividades', hint: `O ícone “${pinName(g.icon)}” já é usado por “${st.owner.name}” (fixado).`, ic: 'pin', soft: true },
+        { label: 'Fixar na barra de atividades e na barra de status', hint: `O ícone “${pinName(g.icon)}” já é usado por “${st.owner.name}” (fixado).`, ic: 'pin', soft: true },
         { label: 'Trocar o ícone deste grupo…', ic: 'palette', go() { openPicker(pinAnchor(g.id), { kind: 'group', id: g.id, pin: true }); } },
         { label: `Desafixar “${st.owner.name}” e fixar este`, ic: 'pin', go() { replacePin(st.owner.id, g.id); } }
       ];
     }
-    return [{ label: 'Fixar na barra de atividades', hint: 'O ícone atual não é fixável: você escolherá um da lista e ele vira o ícone do grupo.', ic: 'pin', go() { openPicker(pinAnchor(g.id), { kind: 'group', id: g.id, pin: true }); } }];
+    return [{ label: 'Fixar na barra de atividades e na barra de status', hint: 'O ícone atual não é fixável: você escolherá um da lista e ele vira o ícone do grupo.', ic: 'pin', go() { openPicker(pinAnchor(g.id), { kind: 'group', id: g.id, pin: true }); } }];
   }
   function pinGroup(gid) {
     commit(() => {
       const g = gById(gid), r = M.setPinned(groups, gid, true); if (!r.changed) return { skip: true };
       groups = r.groups;
-      return { op: `“${g.name}” fixado na barra de atividades`, say: `Grupo ${g.name} fixado na barra de atividades com o ícone ${pinName(g.icon)}.`, focus: `gk:${gid}` };
+      return { op: `“${g.name}” fixado na barra de atividades e na barra de status`, say: `Grupo ${g.name} fixado na barra de atividades com o ícone ${pinName(g.icon)}.`, focus: `gk:${gid}` };
     });
   }
   function unpinGroup(gid) {
     commit(() => {
       const g = gById(gid), r = M.setPinned(groups, gid, false); if (!r.changed) return { skip: true };
       groups = r.groups;
-      return { op: `“${g.name}” desafixado da barra de atividades`, say: `Grupo ${g.name} desafixado. O ícone ${pinName(g.icon)} saiu da barra e ficou livre.`, focus: `gk:${gid}` };
+      return { op: `“${g.name}” desafixado da barra de atividades e da barra de status`, say: `Grupo ${g.name} desafixado. O ícone ${pinName(g.icon)} saiu da barra e ficou livre.`, focus: `gk:${gid}` };
     });
   }
   function replacePin(ownerId, gid) {
