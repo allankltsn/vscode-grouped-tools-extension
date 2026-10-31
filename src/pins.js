@@ -3,6 +3,7 @@
 // pinned group (with a native Markdown hover) and the redirect view hosted by each pin container.
 // Everything that does not need the vscode module is exported separately and unit-tested.
 const catalog = require('../media/pin-catalog');
+const { cleanText } = require('./config');
 
 const MAX_ROWS = 15;
 const MAX_STATUS_NAME = 30;
@@ -10,19 +11,19 @@ const MAX_STATUS_NAME = 30;
 const TRUSTED_COMMANDS = ['groupedTools.runById', 'groupedTools.openGroup', 'groupedTools.manageGroup'];
 // Raster icons only: an SVG may not render inside a hover, so it falls back to a codicon.
 const IMAGE_ICON = /\.(png|jpe?g|webp)$/i;
-const SHOW_EXTENSION_IMAGES = true;
+const MAX_HOVER_NAME = 100;
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
 // Escapes text for Markdown (and for `$(icon)` syntax) so a group or item name can never become a link.
 function escapeMarkdown(text) {
-  return String(text).replace(/\s+/g, ' ').trim().replace(/[\\`*_{}[\]()#+\-.!|<>~$&:]/g, '\\$&');
+  return cleanText(String(text).slice(0, MAX_HOVER_NAME * 2)).slice(0, MAX_HOVER_NAME).replace(/[\\`*_{}[\]()#+\-.!|<>~$&:]/g, '\\$&');
 }
 
 function commandUri(command, args) { return `command:${command}?${encodeURIComponent(JSON.stringify(args))}`; }
 
 function statusName(name) {
-  const clean = String(name).replace(/\$\(/g, '$ (').replace(/\s+/g, ' ').trim();
+  const clean = cleanText(String(name).slice(0, MAX_STATUS_NAME * 4)).replace(/\$\(/g, '$ (');
   return clean.length > MAX_STATUS_NAME ? `${clean.slice(0, MAX_STATUS_NAME - 1)}…` : clean;
 }
 function statusText(group, count) { return `$(${catalog.pinCodicon(group.icon)}) ${statusName(group.name)} (${count})`; }
@@ -35,12 +36,12 @@ function tooltipSource(group, items, iconOf = () => null) {
   else {
     lines.push('| | |', '|:-:|---|');
     for (const item of items.slice(0, MAX_ROWS)) {
-      const uri = SHOW_EXTENSION_IMAGES ? iconOf(item) : null;
+      const uri = iconOf(item);
       const icon = uri ? `![|width=16,height=16](${uri.replace(/[()\s]/g, c => encodeURIComponent(c))})` : (item.kind === 'command' ? '$(terminal)' : '$(extensions)');
       const name = escapeMarkdown(item.name);
       const cell = item.installed === false
         ? `${name} *\\(não instalado\\)*`
-        : `[${name}](${commandUri('groupedTools.runById', [group.id, item.id])} "Abrir ${name.replace(/"/g, '')}")`;
+        : `[${name}](${commandUri('groupedTools.runById', [group.id, item.id])} "Abrir ${cleanText(item.name).slice(0, MAX_HOVER_NAME).replace(/[^\p{L}\p{N} ._-]/gu, '')}")`;
       lines.push(`| ${icon} | ${cell} |`);
     }
     lines.push('');

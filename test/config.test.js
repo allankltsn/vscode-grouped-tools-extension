@@ -49,12 +49,12 @@ test('favoriteKey: stable, depends on command, name and args', () => {
 test('validateGroups: rejects non-array and more than 100 groups', () => {
   for (const bad of [undefined, null, {}, 'x']) assert.throws(() => validateGroups(bad), /Lista de grupos inválida/);
   const many = Array.from({ length: 101 }, (_, i) => ({ name: `g${i}`, items: [] }));
-  assert.throws(() => validateGroups(many), /Lista de grupos inválida/);
+  assert.throws(() => validateGroups(many), /No máximo 100 grupos/);
   assert.equal(validateGroups(many.slice(0, 100)).length, 100);
 });
 
 test('validateGroups: group-level errors', () => {
-  const msg = /Informe o nome e os atalhos/;
+  const msg = /precisa de um nome/;
   assert.throws(() => validateGroups([null]), msg);
   assert.throws(() => validateGroups([{ items: [] }]), msg);
   assert.throws(() => validateGroups([{ name: '   ', items: [] }]), msg);
@@ -64,13 +64,14 @@ test('validateGroups: group-level errors', () => {
 });
 
 test('validateGroups: item-level errors', () => {
-  const msg = /nome e comando válidos/;
   const wrap = item => [{ name: 'a', items: [item] }];
-  assert.throws(() => validateGroups(wrap(null)), msg);
-  assert.throws(() => validateGroups(wrap({ name: ' ', command: 'c' })), msg);
-  assert.throws(() => validateGroups(wrap({ name: 'n', command: '  ' })), msg);
-  assert.throws(() => validateGroups(wrap({ name: 'n' })), msg);
-  assert.throws(() => validateGroups(wrap({ name: 'n', command: 'groupedTools.run' })), msg);
+  assert.throws(() => validateGroups(wrap(null)), /Grupo “a”, item nº 1: informe o nome/);
+  assert.throws(() => validateGroups(wrap({ name: ' ', command: 'c' })), /Grupo “a”, item nº 1: informe o nome/);
+  assert.throws(() => validateGroups(wrap({ name: 'n', command: '  ' })), /item “n”: informe o comando/);
+  assert.throws(() => validateGroups(wrap({ name: 'n' })), /item “n”: informe o comando/);
+  for (const c of ['groupedTools.run', ' groupedTools.run ', 'groupedTools.runById', 'groupedTools.openGroup', 'groupedTools.manageGroup']) assert.throws(() => validateGroups(wrap({ name: 'n', command: c })), /não pode ser usado como item/, c);
+  assert.throws(() => validateGroups(wrap({ name: 'x'.repeat(101), command: 'c' })), /até 100 caracteres/);
+  assert.throws(() => validateGroups(wrap({ name: 'n', command: 'c'.repeat(201) })), /até 200 caracteres/);
   assert.throws(() => validateGroups(wrap({ name: 'n', command: 'c', icon: 1 })), /Ícone inválido/);
   assert.throws(() => validateGroups(wrap({ name: 'n', command: 'c', args: 'x' })), /Argumentos devem ser uma lista/);
 });
@@ -173,4 +174,36 @@ test('validateGroups: pinned is kept in Global, dropped in project scope, and ch
   assert.doesNotThrow(() => validateGroups(g({ pinned: true, icon: undefined })), 'default icon extensions maps to puzzle');
   assert.throws(() => validateGroups([...g({ pinned: true }), { id: 'b', name: 'H', icon: 'database', pinned: true, items: [] }]), /Só um grupo pode ser fixado por ícone/);
   assert.throws(() => validateGroups([...g({ pinned: true }), { id: 'b', name: 'H', icon: 'sparkle', pinned: true, items: [] }, { id: 'c', name: 'I', icon: 'sparkles', pinned: true, items: [] }]), /Só um grupo/, 'aliases share the catalog icon');
+});
+
+test('QA-2: readGroups applies the same limits and trimming as validateGroups', () => {
+  const { readGroups, MAX_GROUPS } = require('../src/config');
+  const many = Array.from({ length: 101 }, (_, i) => ({ name: `g${i}`, items: [] }));
+  assert.equal(readGroups(many).length, MAX_GROUPS);
+  const out = readGroups([
+    { name: '   ', items: [] },
+    { name: `  ${'n'.repeat(120)}  `, items: [
+      { name: '  ', command: 'a.b' },
+      { name: 'x'.repeat(130), command: '  workbench.view.explorer  ' },
+      { name: 'rec', command: ' groupedTools.run ' },
+      { name: 'byid', command: 'groupedTools.runById' },
+      { name: 'long', command: 'c'.repeat(201) },
+      { name: ' ok ', command: 'a.b' }
+    ] }
+  ]);
+  assert.equal(out.length, 1);
+  assert.equal(out[0].name.length, 100);
+  assert.deepEqual(out[0].items.map(i => [i.name.length, i.command]), [[100, 'workbench.view.explorer'], [2, 'a.b']]);
+  assert.doesNotThrow(() => validateGroups(out.map(({ id, name, icon, items }) => ({ id, name, icon, items }))));
+});
+
+test('QA-2: validation errors name the group and item to fix', () => {
+  assert.throws(() => validateGroups([{ name: 'A', items: [] }, { name: ' ', items: [] }]), /grupo nº 2 precisa de um nome/);
+  assert.throws(() => validateGroups([{ name: 'Bancos', items: [{ name: 'Redis', command: ' ' }] }]), /Grupo “Bancos”, item “Redis”: informe o comando/);
+});
+
+test('QA-8: cleanText strips control, zero-width and bidi characters', () => {
+  const { cleanText } = require('../src/config');
+  const dirty = ['  a', '‮', 'b', '⁦', 'c', '​', 'd', '\u0000', 'e\tf\n g '].join('');
+  assert.equal(cleanText(dirty), 'abcde f g');
 });

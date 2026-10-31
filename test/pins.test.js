@@ -91,8 +91,10 @@ test('package.json: commands, hidden internals, keybinding and activation', () =
   const ids = pkg.contributes.commands.map(c => c.command);
   for (const id of ['groupedTools.openGroup', 'groupedTools.manageGroup', 'groupedTools.runById', 'groupedTools.toggleFold']) assert.ok(ids.includes(id), id);
   const hidden = pkg.contributes.menus.commandPalette.filter(m => m.when === 'false').map(m => m.command);
-  assert.deepEqual(hidden.sort(), ['groupedTools.manageGroup', 'groupedTools.openGroup', 'groupedTools.run', 'groupedTools.runById']);
+  assert.deepEqual(hidden.sort(), ['groupedTools.manageGroup', 'groupedTools.openGroup', 'groupedTools.runById']);
   assert.deepEqual(pkg.contributes.keybindings, [{ command: 'groupedTools.toggleFold', key: 'alt+shift+c', when: 'focusedView == groupedTools.view' }]);
+  assert.ok(!ids.includes('groupedTools.run'), 'the generic run command is gone');
+  assert.deepEqual(pkg.capabilities.untrustedWorkspaces, { supported: 'limited', description: pkg.capabilities.untrustedWorkspaces.description, restrictedConfigurations: ['groupedTools.groups'] });
   assert.deepEqual(pkg.activationEvents, ['onStartupFinished']);
 });
 

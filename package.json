@@ -25,6 +25,15 @@
   "engines": {
     "vscode": "^1.85.0"
   },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Em pastas não confiáveis o painel usa só a configuração global; grupos definidos no projeto são ignorados até confiar na pasta.",
+      "restrictedConfigurations": [
+        "groupedTools.groups"
+      ]
+    }
+  },
   "main": "./src/extension.js",
   "scripts": {
     "check": "node -e \"const fs=require('fs'),cp=require('child_process');for(const f of [...fs.readdirSync('src',{recursive:true}).filter(f=>f.endsWith('.js')).map(f=>'src/'+f),...fs.readdirSync('media').filter(f=>f.endsWith('.js')&&f!=='icons.js').map(f=>'media/'+f),...fs.readdirSync('scripts').filter(f=>f.endsWith('.js')).map(f=>'scripts/'+f)])cp.execFileSync(process.execPath,['--check',f],{stdio:'inherit'})\"",
@@ -33,10 +42,6 @@
   },
   "contributes": {
     "commands": [
-      {
-        "command": "groupedTools.run",
-        "title": "Ferramentas: abrir item"
-      },
       {
         "command": "groupedTools.configure",
         "title": "Ferramentas: configurar grupos",
@@ -608,10 +613,6 @@
       ],
       "commandPalette": [
         {
-          "command": "groupedTools.run",
-          "when": "false"
-        },
-        {
           "command": "groupedTools.openGroup",
           "when": "false"
         },
@@ -926,11 +927,14 @@
                   "properties": {
                     "name": {
                       "type": "string",
-                      "minLength": 1
+                      "minLength": 1,
+                      "maxLength": 100
                     },
                     "command": {
                       "type": "string",
-                      "minLength": 1
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "description": "Comando do VS Code. Não pode ser groupedTools.run, runById, openGroup ou manageGroup. Em configuração do projeto, itens com argumentos ou fora de workbench.view.* e workbench.action.* pedem confirmação antes de executar."
                     },
                     "icon": {
                       "type": "string"
@@ -947,7 +951,8 @@
                 }
               }
             }
-          }
+          },
+          "maxItems": 100
         }
       }
     },

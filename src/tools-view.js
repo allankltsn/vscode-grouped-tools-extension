@@ -8,6 +8,11 @@ const catalog = require('../media/pin-catalog');
 const SCOPES = ['global', 'workspace'];
 const MAX_OP = 200;
 const PENDING_MS = 15000;
+// After a navigation (pin click, hover link, gear) the panel becomes visible on purpose: no fold restore then.
+const NAVIGATION_MS = 1500;
+const MAX_APPROVED = 200;
+// A project (workspace) item runs without asking only when it is a plain view or action command without arguments.
+const SAFE_PROJECT_COMMAND = /^workbench\.(view|action)\.[A-Za-z0-9_.-]+$/;
 const GROUP_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
 function listViewExtensions() {
@@ -51,7 +56,7 @@ function describeItem(item, favorites, containers) {
 }
 
 class ToolsView {
-  constructor(context, commandApi) { this.context = context; this.commandApi = commandApi; this.seq = 0; this.pending = null; }
+  constructor(context, commandApi) { this.context = context; this.commandApi = commandApi; this.seq = 0; this.pending = null; this.navigating = false; this.navigationMs = NAVIGATION_MS; }
 
   mediaUri(...parts) { return vscode.Uri.joinPath(this.context.extensionUri, 'media', ...parts); }
 
@@ -70,7 +75,9 @@ class ToolsView {
     let disposed = false;
     view.webview.options = { enableScripts: true, localResourceRoots: [this.mediaUri()] };
     const subscription = view.webview.onDidReceiveMessage(message => this.handleMessage(view, message));
-    view.onDidDispose(() => { disposed = true; subscription.dispose(); if (this.view === view) this.view = undefined; });
+    // Showing the panel without a navigation (the main Activity Bar icon) restores the fold state that a pin click changed.
+    const visibility = view.onDidChangeVisibility(() => { if (view.visible && !this.navigating) this.navigate({ type: 'restoreFold' }); });
+    view.onDidDispose(() => { disposed = true; subscription.dispose(); visibility.dispose(); if (this.view === view) this.view = undefined; });
     let template;
     try { template = await this.loadTemplate(); } catch (error) {
       if (!disposed) vscode.window.showErrorMessage(`Não foi possível carregar o painel de atalhos: ${error.message || error}`);
@@ -85,23 +92,24 @@ class ToolsView {
       .replace('{{model}}', uri('model.js')).replace('{{js}}', uri('view.js'));
   }
 
+  isTrusted() { return vscode.workspace.isTrusted !== false; }
+
   // Scope state of the panel. The active scope is the one the webview chose; by default it is the
-  // effective one (project when it has its own configuration, otherwise global).
+  // effective one (project when it has its own configuration, otherwise global). In an untrusted
+  // workspace only the Global value is read and written (groupedTools.groups is a restricted setting).
   scopeState(inspected) {
     const hasWorkspace = Boolean(vscode.workspace.workspaceFolders?.length);
-    const folderOverride = inspected.workspaceFolderValue !== undefined;
-    const projectOverride = inspected.workspaceValue !== undefined || folderOverride;
+    const trusted = this.isTrusted();
+    const projectOverride = trusted && inspected.workspaceValue !== undefined;
     let active = this.scope;
-    if (!hasWorkspace) active = 'global';
-    else if (folderOverride) active = 'workspace';
+    if (!hasWorkspace || !trusted) active = 'global';
     else if (!SCOPES.includes(active)) active = projectOverride ? 'workspace' : 'global';
-    return { active, hasWorkspace, projectOverride, folderOverride, readOnly: folderOverride };
+    return { active, hasWorkspace, trusted, projectOverride };
   }
 
   inspectGroups() { return vscode.workspace.getConfiguration('groupedTools').inspect('groups') || {}; }
 
   rawGroups(inspected, scope) {
-    if (scope.folderOverride) return vscode.workspace.getConfiguration('groupedTools').get('groups', []);
     if (scope.active === 'workspace') return inspected.workspaceValue ?? inspected.globalValue ?? inspected.defaultValue ?? [];
     return inspected.globalValue ?? inspected.defaultValue ?? [];
   }
@@ -110,7 +118,7 @@ class ToolsView {
   currentGroups() {
     const inspected = this.inspectGroups();
     const scope = this.scopeState(inspected);
-    return readGroups(this.rawGroups(inspected, scope), { pins: scope.active === 'global' && !scope.folderOverride });
+    return readGroups(this.rawGroups(inspected, scope), { pins: scope.active === 'global' });
   }
 
   // Pins always come from the Global configuration, whatever scope the panel shows.
@@ -132,8 +140,8 @@ class ToolsView {
     try {
       if (!SCOPES.includes(message.scope)) throw new Error('Escopo inválido.');
       if (message.scope === 'workspace' && !vscode.workspace.workspaceFolders?.length) throw new Error('Abra um projeto para salvar nele.');
+      if (message.scope === 'workspace' && !this.isTrusted()) throw new Error('Esta pasta não é confiável. Confie na pasta para salvar a organização do projeto.');
       const inspected = this.inspectGroups();
-      if (inspected.workspaceFolderValue !== undefined) throw new Error('Há configuração por pasta; ajuste-a no Settings.');
       const target = message.scope === 'workspace' ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global;
       let value;
       if (kind === 'reset') value = undefined;
@@ -179,7 +187,7 @@ class ToolsView {
     if (typeof message.id !== 'string') return;
     const item = this.currentGroups().flatMap(g => g.items).find(i => i.id === message.id);
     if (!item) return;
-    if (message.type === 'run') await runItem(this.commandApi, item);
+    if (message.type === 'run' && await this.approve(item)) await runItem(this.commandApi, item);
     if (message.type === 'favorite') {
       const favorites = new Set(this.context.workspaceState.get('favorites', []));
       const key = favoriteKey(item);
@@ -187,6 +195,37 @@ class ToolsView {
       await this.context.workspaceState.update('favorites', [...favorites]);
       this.refresh();
     }
+  }
+
+  // Items of the project configuration come from files a repository can ship: unless they are a plain
+  // view/action command, the user confirms the exact command once per item (remembered in workspaceState).
+  needsApproval(item) {
+    if (this.scopeState(this.inspectGroups()).active !== 'workspace') return false;
+    return !(SAFE_PROJECT_COMMAND.test(item.command) && !(Array.isArray(item.args) && item.args.length));
+  }
+
+  async approve(item) {
+    if (!this.needsApproval(item)) return true;
+    const key = favoriteKey(item);
+    const approved = this.context.workspaceState.get('approvedItems', []);
+    if (approved.includes(key)) return true;
+    const args = Array.isArray(item.args) && item.args.length ? JSON.stringify(item.args).slice(0, 300) : 'nenhum';
+    const answer = await vscode.window.showWarningMessage('A configuração deste projeto quer executar um comando.',
+      { modal: true, detail: `Item: ${item.name}
+Comando: ${item.command}
+Argumentos: ${args}
+
+Só execute se você confia nesta pasta.` }, 'Executar e lembrar');
+    if (answer !== 'Executar e lembrar') return false;
+    await this.context.workspaceState.update('approvedItems', [key, ...approved].slice(0, MAX_APPROVED));
+    return true;
+  }
+
+  markNavigating() {
+    this.navigating = true;
+    clearTimeout(this.navigatingTimer);
+    this.navigatingTimer = setTimeout(() => { this.navigating = false; }, this.navigationMs);
+    if (this.navigatingTimer.unref) this.navigatingTimer.unref();
   }
 
   // Navigation messages (focusGroup, openEditor, toggleFold) survive a webview that does not exist yet or is
@@ -207,6 +246,7 @@ class ToolsView {
   // Opens the panel on a pinned group: every other group collapsed, the group scrolled to, highlighted and focused.
   async openGroup(groupId, { organize = false, missing = false } = {}) {
     if (groupId !== undefined && (typeof groupId !== 'string' || !GROUP_ID.test(groupId))) return;
+    this.markNavigating();
     this.navigate({ type: 'focusGroup', collapseOthers: true, ...(groupId ? { groupId } : {}), ...(organize ? { organize: true } : {}), ...(missing ? { missing: true } : {}) });
     await vscode.commands.executeCommand('groupedTools.view.focus');
   }
@@ -218,6 +258,7 @@ class ToolsView {
   }
 
   async openEditor() {
+    this.markNavigating();
     this.navigate({ type: 'openEditor' });
     await vscode.commands.executeCommand('groupedTools.view.focus');
   }
@@ -238,7 +279,7 @@ class ToolsView {
     const inspected = this.inspectGroups();
     const scope = this.scopeState(inspected);
     const containers = containerIndex();
-    const groups = readGroups(this.rawGroups(inspected, scope), { pins: scope.active === 'global' && !scope.folderOverride }).map(g => ({
+    const groups = readGroups(this.rawGroups(inspected, scope), { pins: scope.active === 'global' }).map(g => ({
       id: g.id, name: g.name, icon: g.icon, color: g.color, ...(g.pinned ? { pinned: true } : {}),
       items: g.items.map(i => describeItem(i, favorites, containers))
     }));

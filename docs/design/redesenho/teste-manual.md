@@ -25,7 +25,7 @@ Preparação: abrir a pasta no VS Code, F5 (Extension Development Host). Abra um
 ## C. Barra de status (UX-25, UX-26)
 1. Cada grupo fixado: item `Nome (N)` à esquerda, glifo codicon próximo do ícone.
 2. Hover: card nativo com extensões, link por extensão abre o painel certo, "+N extensões · Ver todas" acima de 15, rodapé Abrir no Ferramentas e Gerenciar grupo (este entra em modo Organizar). Extensão não instalada aparece como texto.
-3. **UX-25:** o ícone `package.json` da extensão (png) aparece com 16 px? Se vier gigante ou quebrado, desligar `SHOW_EXTENSION_IMAGES` em src/pins.js. Foco por teclado (Tab até o item) abre o hover? Enter abre o grupo.
+3. **UX-25:** o ícone `package.json` da extensão (png) aparece com 16 px? Se vier gigante ou quebrado, remover o uso de iconOf em tooltipSource (src/pins.js). Foco por teclado (Tab até o item) abre o hover? Enter abre o grupo.
 4. Alterar um grupo (renomear, adicionar item) e conferir que o texto e o card se atualizam (UX-23); instalar ou desinstalar uma extensão atualiza o selo.
 5. **UX-26:** com muitos grupos fixados, o excedente é cortado pelo VS Code; ocultar pelo menu de contexto da barra de status.
 

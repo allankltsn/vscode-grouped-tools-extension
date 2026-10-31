@@ -2,7 +2,7 @@
 const vscode = require('vscode');
 const { ToolsView } = require('./tools-view');
 const { PinManager, PinRedirect } = require('./pins');
-const { runItem, createCommandApi } = require('./commands');
+const { createCommandApi } = require('./commands');
 const catalog = require('../media/pin-catalog');
 
 function activate(context) {
@@ -17,7 +17,7 @@ function activate(context) {
     vscode.workspace.onDidChangeConfiguration(e => { if (e.affectsConfiguration('groupedTools.groups')) update(); }),
     vscode.extensions.onDidChange(update),
     vscode.workspace.onDidChangeWorkspaceFolders(() => provider.refresh()),
-    vscode.commands.registerCommand('groupedTools.run', item => runItem(commandApi, item)),
+    vscode.workspace.onDidGrantWorkspaceTrust(update),
     vscode.commands.registerCommand('groupedTools.configure', () => provider.openEditor()),
     vscode.commands.registerCommand('groupedTools.openGroup', groupId => provider.openGroup(groupId)),
     vscode.commands.registerCommand('groupedTools.manageGroup', groupId => provider.openGroup(groupId, { organize: true })),

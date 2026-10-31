@@ -17,7 +17,8 @@ function load(vscode) {
 
 function setup(overrides = {}) {
   const store = {}, calls = [], updates = [], messages = [], contexts = [];
-  const handlers = { config: [], extensions: [], editor: [], folders: [] };
+  const handlers = { config: [], extensions: [], editor: [], folders: [], trust: [] };
+  const warnings = [];
   const groups = JSON.parse(JSON.stringify(require('../package.json').contributes.configuration.properties['groupedTools.groups'].default));
   const created = [], providers = new Map(), commandHandlers = new Map(), statusItems = [];
   const mk = () => { const d = { dispose() { d.disposed = true; } }; created.push(d); return d; };
@@ -40,7 +41,8 @@ function setup(overrides = {}) {
     },
     Uri: { joinPath: (uri, ...parts) => ({ fsPath: path.join(uri.fsPath, ...parts), toString() { return `${uri.toString()}/${parts.join('/')}`; } }) },
     workspace: {
-      name: 'AuraFit', workspaceFolders: [{}], getConfiguration: () => config,
+      name: 'AuraFit', workspaceFolders: [{}], isTrusted: true, getConfiguration: () => config,
+      onDidGrantWorkspaceTrust: f => (handlers.trust.push(f), mk()),
       onDidChangeConfiguration: f => (handlers.config.push(f), mk()),
       onDidChangeWorkspaceFolders: f => (handlers.folders.push(f), mk()),
       fs: overrides.fs || { readFile: async uri => { reads.push(uri.fsPath); return fsp.readFile(uri.fsPath); } }
@@ -49,6 +51,7 @@ function setup(overrides = {}) {
       registerWebviewViewProvider: (id, p) => (providers.set(id, p), mk()),
       onDidChangeActiveTextEditor: f => (handlers.editor.push(f), disposable),
       showErrorMessage: async m => calls.push(m),
+      showWarningMessage: async (...args) => { warnings.push(args); return overrides.warningAnswer; },
       createStatusBarItem: (id, alignment, priority) => {
         const item = { id, alignment, priority, shown: false, show() { item.shown = true; }, dispose() { item.disposed = true; } };
         statusItems.push(item); return item;
@@ -62,13 +65,15 @@ function setup(overrides = {}) {
   const context = { extensionUri: { fsPath: root }, subscriptions: [], workspaceState: { get: (k, d) => store[k] || d, update: async (k, v) => { store[k] = v; } } };
   load(vscode).activate(context);
   const provider = providers.get('groupedTools.view');
-  let onMessage, onDispose;
+  let onMessage, onDispose, onVisible;
   const view = {
+    visible: true,
     webview: { asWebviewUri: u => u, cspSource: 'local', postMessage: m => messages.push(m), onDidReceiveMessage: f => (onMessage = f, disposable) },
+    onDidChangeVisibility: f => (onVisible = f, disposable),
     onDidDispose: f => { onDispose = f; return disposable; }
   };
   return { vscode, provider, providers, commandHandlers, statusItems, contexts, view, groups, config, calls, updates, messages, handlers, reads, context, created, inspected,
-    send: m => onMessage(m), dispose: () => onDispose() };
+    warnings, send: m => onMessage(m), dispose: () => onDispose(), show: () => onVisible() };
 }
 
 const PINNED = [
@@ -369,4 +374,119 @@ test('commands: hover commands resolve ids from the configuration only', async (
   assert.equal(messages.at(-1).type, 'toggleFold');
   await commandHandlers.get('groupedTools.configure')();
   assert.equal(messages.at(-1).type, 'openEditor');
+});
+
+test('REV-1: showing the panel without a navigation restores the fold state; a navigation does not', async () => {
+  const { provider, view, messages, send, show } = setup({ inspect: { globalValue: PINNED.map(g => ({ ...g })) } });
+  provider.navigationMs = 30;
+  await provider.resolveWebviewView(view);
+  await send({ type: 'ready' });
+  const restores = () => messages.filter(m => m.type === 'restoreFold');
+  await provider.openGroup('git'); // pin click: navigation in progress
+  show();
+  assert.equal(restores().length, 0, 'visibility caused by the navigation itself');
+  await new Promise(r => setTimeout(r, 50));
+  show(); // main Activity Bar icon
+  assert.equal(restores().length, 1);
+  const message = restores()[0];
+  await send({ type: 'focusAck', seq: message.seq });
+  await send({ type: 'ready' }); // reload after the ack: not resent
+  assert.equal(restores().length, 1);
+  view.visible = false; show();
+  assert.equal(restores().length, 1, 'hiding never restores');
+});
+
+test('REV-1: a restoreFold lost to a webview reload is resent after ready', async () => {
+  const { provider, view, messages, send, show } = setup();
+  await provider.resolveWebviewView(view);
+  show();
+  await send({ type: 'ready' });
+  assert.equal(messages.filter(m => m.type === 'restoreFold').length, 2, 'immediate post plus redelivery after ready');
+});
+
+test('SEC-1: project items with args or non-view commands need a one-time confirmation; global items do not', async () => {
+  const risky = [{ id: 'p', name: 'P', icon: 'cloud', items: [
+    { name: 'Shell', command: 'workbench.action.terminal.sendSequence', args: [{ text: 'rm -rf x' }] },
+    { name: 'Task', command: 'workbench.action.tasks.runTask' },
+    { name: 'Evil', command: 'some.ext.deleteEverything' },
+    { name: 'View', command: 'workbench.view.explorer' }
+  ] }];
+  const run = async answer => {
+    const t = setup({ warningAnswer: answer, inspect: { workspaceValue: risky, globalValue: risky } });
+    await t.provider.resolveWebviewView(t.view);
+    await t.send({ type: 'ready', scope: 'workspace' });
+    return t;
+  };
+  let t = await run(undefined); // the user dismisses the modal
+  const ids = t.messages.at(-1).groups[0].items.map(i => i.id);
+  await t.send({ type: 'run', id: ids[3] });
+  assert.equal(t.warnings.length, 0, 'plain workbench.view.* needs no prompt');
+  assert.equal(t.calls.splice(0).length, 1);
+  await t.send({ type: 'run', id: ids[1] });
+  assert.equal(t.warnings.length, 0, 'workbench.action.* without args needs no prompt');
+  assert.equal(t.calls.splice(0).length, 1);
+  for (const id of [ids[0], ids[2]]) await t.send({ type: 'run', id });
+  assert.equal(t.warnings.length, 2);
+  assert.equal(t.calls.length, 0, 'declined: nothing executed');
+  assert.match(t.warnings[0][1].detail, /sendSequence/);
+  assert.match(t.warnings[0][1].detail, /rm -rf x/);
+  assert.equal(t.warnings[0][1].modal, true);
+
+  t = await run('Executar e lembrar');
+  await t.send({ type: 'run', id: ids[2] });
+  assert.equal(t.calls.splice(0)[0][0], 'some.ext.deleteEverything');
+  await t.send({ type: 'run', id: ids[2] });
+  assert.equal(t.warnings.length, 1, 'remembered by item key');
+  assert.equal(t.calls.splice(0).length, 1);
+
+  t = await run(undefined);
+  await t.send({ type: 'ready', scope: 'global' });
+  await t.send({ type: 'run', id: ids[2] });
+  assert.equal(t.warnings.length, 0, 'global scope is the user own configuration');
+  assert.equal(t.calls.splice(0)[0][0], 'some.ext.deleteEverything');
+});
+
+test('SEC-2: an untrusted workspace reads and writes only the Global value', async () => {
+  const globalValue = [{ id: 'g', name: 'Global', icon: 'cloud', pinned: true, items: [] }];
+  const workspaceValue = [{ id: 'w', name: 'Project', icon: 'cloud', items: [{ name: 'X', command: 'evil.cmd' }] }];
+  const t = setup({ inspect: { globalValue, workspaceValue } });
+  t.vscode.workspace.isTrusted = false;
+  await t.provider.resolveWebviewView(t.view);
+  await t.send({ type: 'ready', scope: 'workspace' });
+  const data = t.messages.at(-1);
+  assert.equal(data.scope.active, 'global');
+  assert.equal(data.scope.trusted, false);
+  assert.equal(data.scope.projectOverride, false);
+  assert.deepEqual(data.groups.map(g => g.name), ['Global']);
+  assert.deepEqual(t.provider.pinnedState().map(g => g.name), ['Global']);
+  await t.send({ type: 'saveGroups', scope: 'workspace', groups: workspaceValue });
+  assert.equal(t.messages.at(-1).type, 'saveError');
+  assert.match(t.messages.at(-1).text, /não é confiável/);
+  assert.equal(t.updates.length, 0);
+  const id = require('../src/config').readGroups(workspaceValue)[0].items[0].id;
+  await t.send({ type: 'run', id });
+  assert.equal(t.calls.length, 0, 'project items cannot run while untrusted');
+  t.vscode.workspace.isTrusted = true;
+  t.handlers.trust[0]();
+  assert.equal(t.messages.at(-1).scope.trusted, true);
+});
+
+test('SEC-3/SEC-6: groupedTools.run is not registered; hover entry points never run as items', async () => {
+  const t = setup();
+  assert.equal(t.commandHandlers.has('groupedTools.run'), false);
+  for (const command of ['groupedTools.run', 'groupedTools.runById', 'groupedTools.openGroup', 'groupedTools.manageGroup']) {
+    const x = setup({ inspect: { globalValue: [{ id: 'g', name: 'G', icon: 'cloud', items: [{ name: 'B', command }, { name: 'Ok', command: 'workbench.view.explorer' }] }] } });
+    await x.provider.resolveWebviewView(x.view);
+    await x.send({ type: 'ready' });
+    assert.deepEqual(x.messages.at(-1).groups[0].items.map(i => i.name), ['Ok'], command);
+  }
+});
+
+test('QA-8: names with control and bidi characters are cleaned in status text and hover', async () => {
+  const name = ['Ab', '‮', 'c', '​', 'd', '\n', 'E'].join('');
+  const item = ['I', '⁧', 'tem', '\u0007'].join('');
+  const { handlers, statusItems } = setup({ inspect: { globalValue: [{ id: 'g', name, icon: 'cloud', pinned: true, items: [{ name: item, command: 'workbench.view.explorer' }] }] } });
+  handlers.config[0]({ affectsConfiguration: () => true });
+  assert.equal(statusItems[0].text, '$(cloud) Abcd E (1)');
+  assert.equal(/[‪-‮⁦-⁩​\u0007]/.test(statusItems[0].tooltip.value), false);
 });
