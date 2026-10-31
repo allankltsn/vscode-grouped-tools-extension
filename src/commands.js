@@ -1,10 +1,10 @@
 'use strict';
-const { RECURSIVE_COMMAND } = require('./config');
+const { isBlockedCommand } = require('./config');
 
 // `api` supplies { executeCommand, showErrorMessage } so this module stays vscode-free.
 // Callers must pass items resolved from configuration, never a raw webview payload.
 async function runItem(api, item) {
-  if (!item || typeof item.command !== 'string' || item.command === RECURSIVE_COMMAND) return;
+  if (!item || typeof item.command !== 'string' || isBlockedCommand(item.command)) return;
   try {
     // Execute directly: commands contributed by an inactive extension may activate it.
     await api.executeCommand(item.command, ...(Array.isArray(item.args) ? item.args : []));

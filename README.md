@@ -1,6 +1,6 @@
 # Ferramentas agrupadas — 0.0.4
 
-Painel inspirado no mockup: busca fixa, contexto do projeto, abas Todas/Favoritos, grupos recolhíveis com contadores, linhas compactas com ícones e botão Personalizar grupos no rodapé. Respeita as cores e fontes do tema ativo. Rolagem fica dentro da lista, sem esconder busca ou rodapé. Favoritos são salvos por workspace; pesquisa, aba e grupos recolhidos são mantidos ao reabrir o painel.
+Painel compacto de atalhos agrupados: busca, grupos recolhíveis com cor e ícone, favoritos, modo Organizar (arrastar, renomear, cor, ícone), grupos fixados na barra de atividades e na barra de status. Respeita as cores e fontes do tema (claro, escuro e alto contraste). Favoritos são salvos por workspace.
 
 ## Instalar permanentemente
 1. Obtenha um arquivo .vsix da extensão (veja "Gerar o pacote" abaixo; ainda não há um comando de empacotamento aprovado neste repositório).
@@ -38,15 +38,34 @@ O VS Code não permite que uma extensão contribua diretamente à barra lateral 
 
 O posicionamento e os controles para recolher a barra são administrados pelo VS Code. Após mover, o acesso ao painel acompanha a localização escolhida; não há um ícone esquerdo espelhado nesta versão.
 
-## Configurar grupos
+## Usar e organizar
 
-Personalizar grupos aparece aberto dentro do painel. Escolha Novo grupo ou um grupo existente, informe nome e ícone, adicione extensões instaladas ou comandos e clique em Salvar grupo. É possível editar nomes/comandos, remover ferramentas e excluir grupos. Argumentos e ícones já configurados de ferramentas são preservados; edições avançadas ficam disponíveis em Abrir Settings.
+- **Usar:** clique num item para abrir o painel da extensão; a estrela favorita; busca filtra grupos e itens; **Recolher todos** (Alt+Shift+C com o painel em foco) alterna entre recolher e expandir todos os grupos.
+- **Organizar:** o botão abre o modo de edição sobre a mesma lista. Arraste itens e grupos pela alça, ou use Espaço (pegar), setas (mover; esquerda e direita trocam de grupo), Espaço (soltar) e Esc (cancelar); Alt+setas move um passo. O menu ⋯ oferece Mover para…, Renomear, Cor e ícone e Excluir. Duplo clique no nome renomeia o grupo.
+- **Ícones:** o seletor busca entre todos os ícones Lucide (nome, tags, palavras em português como banco, nuvem, pasta) e mostra 60 por vez.
+- **Não agrupadas:** sempre visível abaixo dos grupos (recolhível; o estado é lembrado). Uma linha por extensão; se ela tem vários painéis, aparece "N painéis" e "Adicionar a…" pergunta qual. Ícones são os originais das extensões (ícone do contêiner na Activity Bar ou o ícone PNG da extensão), lidos e sanitizados pela extensão; o genérico aparece quando não há como mostrar o original com segurança. Comandos livres entram por ⋯ > Adicionar item… > Comando do VS Code.
+- **Lembrar de ocultar o ícone ao adicionar:** o VS Code não oferece como uma extensão ocultar o ícone de outra na barra de atividades. Com a opção marcada, ao adicionar uma extensão o painel mostra o passo ("clique com o botão direito no ícone e escolha Ocultar") e o botão "Copiar passo".
+- **Onde fica o ícone Ferramentas:** o VS Code coloca novos ícones no fim da barra de atividades e a extensão não controla a posição. Na primeira ativação o painel abre sozinho e avisa; arraste o ícone para onde quiser.
+- **Salvar:** automático a cada gesto, com aviso Desfazer por 8 s (Ctrl+Z também). Erros mantêm o rascunho na tela, com Tentar de novo ou Descartar.
+- **Escopo:** Global (padrão) vale para todos os projetos; Este projeto grava no workspace e prevalece; a primeira edição copia a global. Em pasta não confiável (Workspace Trust) só vale o Global e "Este projeto" fica indisponível. Edições avançadas (argumentos de comando) ficam no Settings (groupedTools.groups).
 
-Salvar em começa em Global: a alteração é salva nas configurações do usuário e vale para todos os projetos. Escolha Este projeto para salvar no workspace atual (.vscode/settings.json ou arquivo .code-workspace). Uma configuração do projeto prevalece sobre a global. Use Usar configuração global neste projeto para remover essa substituição. Sem projeto aberto, essa opção fica desabilitada. Configurações legadas por pasta podem ser removidas no Settings.
+## Segurança
 
-Grupos vazios podem ser preparados no formulário e aparecem na lista de ferramentas após receberem itens. O seletor de extensões lista os painéis declarados pelas extensões instaladas; extensões sem painéis podem ser adicionadas por seus comandos. Os atalhos abrem os painéis originais, sem mover suas interfaces.
+- **Itens do projeto:** a configuração do projeto (.vscode/settings.json) pode vir de um repositório de terceiros. No escopo "Este projeto", um item com argumentos, ou com comando fora de workbench.view.* e de uma lista curta de ações inofensivas (SAFE_ACTIONS em src/tools-view.js), pede confirmação modal com o comando e os argumentos completos (caracteres ocultos aparecem como XXXX). Argumentos longos (acima de 1500 caracteres) só podem ser executados uma vez; nos demais há "Executar e lembrar" (guardado como SHA-256 no workspaceState). Itens do Global não pedem. O comando do item aparece no title do botão.
+- **Limitação do Global:** itens do escopo Global (e os grupos fixados) executam qualquer comando sem confirmação, inclusive runCommands, porque essa configuração é do próprio usuário. Não cole configuração de terceiros no Global sem ler. Ações que gravam em settings.json (como alternar a barra de status ou a de atividades) não fazem parte da lista de ações sem confirmação no projeto.
+- **Aprovações antigas:** aprovações gravadas em texto puro por versões anteriores deixam de valer; o modal pede confirmação mais uma vez e passa a guardar só o hash. Na ativação, favoritos antigos viram hash quando o item ainda existe, e o armazenamento é limitado (500 favoritos, 200 aprovações). Espaços repetidos nos argumentos aparecem como ␠×N no modal.
+- **Pasta não confiável:** a extensão declara suporte limitado (untrustedWorkspaces, restrictedConfigurations groupedTools.groups) e lê/grava só o valor Global enquanto a pasta não for confiável.
+- **Comandos bloqueados como item:** groupedTools.run, runById, openGroup e manageGroup. O comando groupedTools.run não existe mais.
+- **Limites da configuração:** até 100 grupos, nomes de até 100 caracteres, comando de até 200; caracteres de controle e bidi são removidos dos nomes. Erros de salvamento dizem qual grupo ou item corrigir.
+- **Ids:** o id de um grupo sem `id` na configuração é derivado do nome (grp-<hash do nome>); renomear um grupo escrito à mão (sem id) muda o id até o painel gravá-lo. O id de item deriva de comando, nome e argumentos.
+- **Ícones:** media/icons.js e media/pin/*.svg só podem conter tags e atributos da lista em scripts/svg-allowlist.js; o gerador e um teste falham se aparecer outra coisa.
+- **Contraste:** `node scripts/contrast.js` mede a paleta (barra 3:1, texto 4.5:1) em Light+ e Dark+.
 
-Os ícones são um subconjunto local do Lucide (licença ISC, em media/lucide-LICENSE.txt), sem CDN. Opções: plus, music, kanban, terminal, cloud, play, warning, beaker, code, database, sparkle, extensions, settings, star e search. Os controles nativos do VS Code usam Codicons.
+## Grupos fixados
+
+⋯ do grupo > **Fixar na barra de atividades e na barra de status** (só no escopo Global). O grupo ganha um ícone na barra de atividades com o **mesmo ícone do grupo** e um item na barra de status (`Nome (N)`, à esquerda) com um card nativo que lista as extensões e abre cada uma. Clicar em qualquer um abre o painel com os outros grupos recolhidos, rola até o grupo, destaca e foca; o ícone principal Ferramentas restaura o recolhimento anterior.
+
+Limites da plataforma: o ícone da barra de atividades é um arquivo estático, por isso só ícones do catálogo curado (media/pin-catalog.js, 40 ícones) podem ser fixados, **um grupo por ícone**; o hover da barra de atividades mostra só o título "Ferramentas · <ícone>" (não o nome nem a cor do grupo); o excedente da barra de status é cortado pelo VS Code. Os contêineres, views e SVGs são gerados: `node scripts/build-pins.js` (`--check` verifica; o teste compara).
 
 ## O que é funcional
 - Busca por ferramenta, grupo ou ID de comando.
@@ -56,43 +75,25 @@ Os ícones são um subconjunto local do Lucide (licença ISC, em media/lucide-LI
 - Navegação por Tab/Enter, foco visível e estados vazios.
 
 ## Limites
-Agrupa atalhos; não reúne automaticamente todas as extensões, nem move suas interfaces originais. Os ícones originais podem ser ocultados manualmente pelo menu da Activity Bar. O contexto mostra o workspace real; não é um seletor de perfis. A reordenação é feita no JSON. Não inclui arrastar e soltar ou instalação automática de extensões.
+Agrupa atalhos; não move as interfaces originais das extensões (os ícones originais podem ser ocultados pelo menu da Activity Bar). O contexto mostra o workspace real; não é seletor de perfis. Nada foi verificado dentro do VS Code real nesta etapa (veja docs/design/redesenho/teste-manual.md).
 
 ## Verificação
-- npm run check: valida a sintaxe (node --check) de todos os .js em src/ e de media/view.js.
-- npm test: executa os testes (node --test "test/*.test.js"): test/config.test.js, test/commands.test.js e test/provider.test.js (integração do provedor e das mensagens).
-
-Teste visual no VS Code: buscar, favoritar, filtrar, recolher grupos, executar um comando, alternar tema, mover para a direita e fechar/reabrir.
-
-API oficial: https://code.visualstudio.com/api/references/vscode-api
-Posicionamento: https://code.visualstudio.com/api/ux-guidelines/sidebars
+- npm run check: valida a sintaxe (node --check) de src/, media/*.js (exceto icons.js) e scripts/.
+- npm test: node --test "test/*.test.js": config, comandos, provedor (mock do vscode), pins (catálogo, gerador, schema, tooltip) e modelo do painel.
+- Teste manual no VS Code: docs/design/redesenho/teste-manual.md.
 
 ## Estrutura do código
-- src/extension.js: ponto de entrada (activate/deactivate), registra comandos e a view.
-- src/tools-view.js: provedor da view em webview e tratamento de mensagens.
-- src/config.js: leitura e normalização da configuração de grupos (módulo puro).
-- src/commands.js: execução de comandos (módulo puro).
-- media/: interface do webview (view.html, view.css, view.js), icons.js, tools.svg e lucide-LICENSE.txt.
-- test/: config.test.js, commands.test.js e provider.test.js.
-- v1/: versão anterior, mantida só como referência; não entra no pacote.
+- src/extension.js: ativação, comandos, contêineres fixos.
+- src/tools-view.js: provedor do painel, mensagens, escopos, focusGroup.
+- src/pins.js: context keys, itens da barra de status e tooltip Markdown; redirecionador das views fixas.
+- src/config.js e src/commands.js: módulos puros.
+- media/: view.html, view.css, view.js (interface), model.js (modelo puro), pin-catalog.js (catálogo único dos ícones fixáveis), icons.js (Lucide, gerado), pin/*.svg (gerados).
+- scripts/: build-icons.js e build-pins.js.
+- test/: testes node --test. docs/design/redesenho/: ux, ui, plano, protótipo e teste manual.
+- v1/: versão anterior, só referência.
 
 ## Grupos padrão
 
-Os padrões agrupam por tema os painéis que normalmente ocupam a Activity Bar. Cada atalho abre o painel original (workbench.view.extension.<id do contêiner>) e só funciona se a extensão estiver instalada.
+O único grupo padrão é **Qualidade e testes** (cor Verde, classe g-7 da paleta g-1..g-10) com Problemas e Testes. Os demais grupos você cria no painel (ou em groupedTools.groups). O cartão de primeira vez oferece "Criar o grupo sugerido" (esse mesmo grupo) ou "Começar do zero". Os atalhos de extensões abrem o painel original (workbench.view.extension.<id do contêiner>) e só funcionam com a extensão instalada.
 
-| Grupo | Atalhos |
-| --- | --- |
-| Claude e IA | Claude Code (sidebar e sessões), Claude Code Chat, Claude Control, Claude Lens, Claude Code Graph, Codex, CodeCursor, Tabnine |
-| Git e GitHub | Controle de código-fonte, GitLens, Pull requests e issues, GitHub Actions, Git Graph |
-| Bancos de dados | Database Client, PostgreSQL, Prisma |
-| Containers e remoto | Docker, Explorador remoto, terminal, tarefas |
-| Diagramas e planejamento | Diagram Forge, Archify, Kanban Markdown |
-| Linguagens e notebooks | Python, Jupyter, PowerShell, Makefile, corretor ortográfico |
-| Qualidade e testes | Problemas, Testes |
-| Variados | Spotify, ClickUp |
-
-## Grupo Variados
-
-Ícone plus e atalhos Spotify e ClickUp. Os atalhos abrem os painéis originais das extensões shyykoserhiy.vscode-spotify e mcdev.clickup-kanban, que precisam estar instaladas. Não há substituição de grupos neste workspace por padrão. Configurações personalizadas em outros workspaces prevalecem sobre os padrões.
-
-Ícones de grupos e itens também aceitam plus, music e kanban.
+Ícones de grupos e itens aceitam qualquer nome do Lucide (ex.: plus, music, kanban).

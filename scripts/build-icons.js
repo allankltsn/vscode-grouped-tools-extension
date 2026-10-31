@@ -2,6 +2,7 @@
 // Generates media/icons.js (full Lucide set, ISC) from an unpacked lucide-static package.
 // Usage: node scripts/build-icons.js <path-to-lucide-static-package>
 const fs = require('fs'), path = require('path');
+const { checkBody } = require('./svg-allowlist');
 const src = process.argv[2];
 if (!src) { console.error('Informe o caminho do pacote lucide-static descompactado.'); process.exit(1); }
 const nodes = JSON.parse(fs.readFileSync(path.join(src, 'icon-nodes.json'), 'utf8'));
@@ -11,6 +12,8 @@ const esc = v => String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
 const icons = {}, keywords = {};
 for (const [name, parts] of Object.entries(nodes)) {
   icons[name] = parts.map(([tag, attrs]) => `<${tag} ${Object.entries(attrs).filter(([k]) => k !== 'key').map(([k, v]) => `${k}="${esc(v)}"`).join(' ')}/>`).join('');
+  const problems = checkBody(icons[name]);
+  if (problems.length) { console.error(`Ícone ${name} rejeitado: ${problems.join('; ')}`); process.exit(1); }
   const t = (tags[name] || []).slice(0, 6).join(' ');
   if (t) keywords[name] = t;
 }
