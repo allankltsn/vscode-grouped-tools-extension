@@ -50,6 +50,8 @@ html,body{height:100%;margin:0;padding:0;overflow:hidden;background:var(--vscode
 }
 .g-1{--g:#3b82f6} .g-2{--g:#8b5cf6} .g-3{--g:#ec4899} .g-4{--g:#ef4444} .g-5{--g:#ea6a0c}
 .g-6{--g:#c98a04} .g-7{--g:#16a34a} .g-8{--g:#0d9488} .g-9{--g:#0891b2} .g-10{--g:#64748b}
+/* Light+: darker tones so the group bar reaches 3:1 on the sidebar (scripts/contrast.js measures it). */
+body.vscode-light .g-5{--g:#d5610c} body.vscode-light .g-6{--g:#b27a04} body.vscode-light .g-7{--g:#149946}
 
 /* ===== 3. Componentes do painel ===== */
 .app *,.app *::before,.app *::after{box-sizing:border-box}
@@ -120,6 +122,7 @@ mark{background:color-mix(in srgb,var(--accent) 32%,transparent);color:inherit;b
 .seg button:hover{background:var(--hover);color:var(--fg)}
 .seg button[aria-pressed="true"]{background:var(--bg);color:var(--fg);box-shadow:var(--sh-1)}
 .pill-btn{display:inline-flex;align-items:center;gap:var(--sp-2);height:26px;padding:0 var(--sp-3);border-radius:var(--r-pill);font-size:var(--fs-meta);color:var(--fg-dim);min-width:0;margin-inline-start:auto}
+.pill-btn{min-width:24px;min-height:24px;justify-content:center}
 .pill-btn:hover{background:var(--hover);color:var(--fg)}
 .pill-btn .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
@@ -171,7 +174,7 @@ button.chip:hover{background:color-mix(in srgb,var(--g) 26%,transparent)}
 .groups.reorder .panel{grid-template-rows:0fr}
 .groups.reorder .panel>div{visibility:hidden}
 .items{position:relative;margin:var(--sp-1) 0 var(--sp-1) 22px;padding:0 0 0 var(--sp-3)}
-.items::before{content:"";position:absolute;left:0;top:var(--sp-2);bottom:var(--sp-2);width:2px;border-radius:var(--r-pill);background:color-mix(in srgb,var(--g) 55%,transparent)}
+.items::before{content:"";position:absolute;left:0;top:var(--sp-2);bottom:var(--sp-2);width:2px;border-radius:var(--r-pill);background:var(--g)}
 li.empty{margin:var(--sp-2) 0;padding:var(--sp-3) var(--sp-4);border:1px dashed var(--line-2);border-radius:var(--r-md);color:var(--fg-dim);display:flex;gap:var(--sp-3);align-items:center;flex-wrap:wrap}
 li.empty .lk{color:var(--vscode-textLink-foreground);font-weight:var(--fw-medium);padding:0 var(--sp-2);height:24px;border-radius:var(--r-sm)}
 li.empty .lk:hover{background:var(--hover)}

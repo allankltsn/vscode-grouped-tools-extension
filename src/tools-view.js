@@ -89,7 +89,7 @@ class ToolsView {
     view.webview.html = template
       .replaceAll('{{nonce}}', nonce).replaceAll('{{csp}}', view.webview.cspSource)
       .replace('{{css}}', uri('view.css')).replace('{{icons}}', uri('icons.js')).replace('{{catalog}}', uri('pin-catalog.js'))
-      .replace('{{model}}', uri('model.js')).replace('{{js}}', uri('view.js'));
+      .replace('{{model}}', uri('model.js')).replace('{{sync}}', uri('sync.js')).replace('{{js}}', uri('view.js'));
   }
 
   isTrusted() { return vscode.workspace.isTrusted !== false; }
@@ -228,7 +228,7 @@ Só execute se você confia nesta pasta.` }, 'Executar e lembrar');
     if (this.navigatingTimer.unref) this.navigatingTimer.unref();
   }
 
-  // Navigation messages (focusGroup, openEditor, toggleFold) survive a webview that does not exist yet or is
+  // Navigation messages (focusGroup, openEditor, restoreFold) survive a webview that does not exist yet or is
   // reloading: they are kept until the webview acknowledges them, and resent after its next `ready`.
   navigate(message) {
     const full = { ...message, seq: ++this.seq };

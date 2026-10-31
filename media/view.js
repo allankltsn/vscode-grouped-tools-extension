@@ -5,7 +5,7 @@
 (function () {
   'use strict';
   const api = acquireVsCodeApi();
-  const M = window.groupModel, CAT = window.pinCatalog;
+  const M = window.groupModel, SY = window.syncState, CAT = window.pinCatalog;
   const I = window.toolIcons || {}, TAGS = window.toolIconTags || {}, ALIASES = window.toolIconAliases || {};
   const ICON_NAMES = Object.keys(I).sort();
   const PAGE = 60, SAVE_DELAY = 400;
@@ -43,7 +43,7 @@
   let data = null, lastData = null, groups = [], groupsScope = null;
   let drag = null, rendering = false, pop = null, undoSnap = null, ownShown = false;
   let toastT = null, saveT = null, liveT = null, lastRun = { id: null, at: 0 };
-  const sync = { timer: null, pending: null, inflight: null, draft: false, error: null };
+  const sync = SY.create();
   const app = $('#app'), scrollEl = $('#scroll'), overlay = $('#overlay'), live = $('#live'), footEl = $('#foot');
   const qEl = $('#q'), btnOrg = $('#btnOrg'), btnScope = $('#btnScope'), btnFold = $('#btnFold');
   scrollEl.tabIndex = -1;
@@ -52,7 +52,6 @@
   function persist() {
     api.setState({ tab: S.tab, q: S.q, collapsed: S.collapsed, prevCollapsed: S.prevCollapsed, trayCollapsed: S.trayCollapsed, hintDismissed: S.dismissed.hint === true, recents: S.recents, scope: S.scopePref });
   }
-  const readOnly = () => Boolean(data && data.scope && data.scope.readOnly);
   const activeScope = () => (data && data.scope ? data.scope.active : 'global');
   const scopeName = () => (activeScope() === 'global' ? 'Global' : 'Este projeto');
   const allItems = () => groups.flatMap(g => g.items);
@@ -96,23 +95,21 @@
   }
   function queueSave(type, op) {
     const scope = activeScope();
-    if (sync.pending && sync.pending.scope !== scope) flush();
-    sync.pending = { type, scope, op, groups: M.serialize(groups, scope) };
+    const other = SY.enqueue(sync, { type, scope, op, groups: M.serialize(groups, scope) });
     clearTimeout(sync.timer); sync.timer = setTimeout(flush, SAVE_DELAY);
+    if (other) flush();
     setSave('saving');
   }
   function flush() {
     clearTimeout(sync.timer); sync.timer = null;
-    if (!sync.pending || sync.inflight) return;
-    sync.inflight = sync.pending; sync.pending = null;
-    const { type, scope, groups: payload, op } = sync.inflight;
-    api.postMessage({ type, scope, groups: payload, op });
+    const entry = SY.take(sync); if (!entry) return;
+    api.postMessage({ type: entry.type, scope: entry.scope, groups: entry.groups, op: entry.op });
+    if (SY.hasPending(sync)) sync.timer = setTimeout(flush, SAVE_DELAY);
   }
   function onSaved(message) {
-    const done = sync.inflight; sync.inflight = null; sync.error = null;
-    if (sync.pending && !sync.timer) { flush(); return; }
-    if (sync.timer) return;
-    sync.draft = false;
+    const r = SY.saved(sync), done = r.done;
+    if (r.again) { flush(); return; }
+    if (r.waiting) return;
     if (lastData && (!done || done.scope === activeScope())) { groups = M.clone(lastData.groups); groupsScope = activeScope(); }
     setSave('saved', 3000);
     render(); syncTop();
@@ -121,22 +118,20 @@
     if (reason.type === 'reset' || reason.type === 'suggested') toast({ text: message.text || 'Salvo.' });
   }
   function onSaveError(message) {
-    const failed = sync.inflight; sync.inflight = null;
-    if (failed && !sync.pending) sync.pending = failed;
-    sync.error = (message.reason && message.reason.text) || message.text || 'Erro desconhecido.';
+    SY.failed(sync, (message.reason && message.reason.text) || message.text);
     S.save = 'error'; render(); renderFoot();
     announce(`Não foi possível salvar: ${sync.error}. Suas alterações continuam na tela.`);
   }
-  function retrySave() { sync.error = null; S.save = 'saving'; flush(); render(); renderFoot(); announce('Tentando salvar de novo.'); }
+  function retrySave() { SY.retry(sync); S.save = 'saving'; flush(); render(); renderFoot(); announce('Tentando salvar de novo.'); }
   function discardDraft() {
-    clearTimeout(sync.timer); sync.timer = null; sync.pending = null; sync.error = null; sync.draft = false; undoSnap = null;
+    clearTimeout(sync.timer); sync.timer = null; SY.discard(sync); undoSnap = null;
     if (lastData) { groups = M.clone(lastData.groups); groupsScope = activeScope(); }
     S.save = ''; S.edit = null; S.kb = null; fullRender(null); announce('Alterações descartadas.');
   }
   function undo() {
     if (!undoSnap) { announce('Nada para desfazer.'); return; }
     const u = undoSnap; undoSnap = null; closePop(false); hideToast();
-    if (u.scope !== activeScope() || readOnly()) return;
+    if (u.scope !== activeScope()) return;
     groups = u.groups; S.edit = null; S.kb = null; S.confirmDel = null; sync.draft = true;
     fullRender(null); announce(`Desfeito: ${u.op}`); toast({ text: 'Desfeito.' });
     queueSave('undo', 'Alteração desfeita.');
@@ -156,7 +151,6 @@
     queueSave('saveGroups', r.op);
   }
   function commit(fn) {
-    if (readOnly()) { announce('Configuração por pasta: somente leitura. Ajuste no Settings.'); return; }
     const before = snap(); const r = fn() || {};
     if (r.skip) { if (r.say) announce(r.say); render(r.focus === undefined ? undefined : r.focus); return; }
     finish(before, r);
@@ -164,7 +158,7 @@
   function askReset() {
     openDialog(btnScope, { text: 'A organização própria deste projeto será descartada e o painel volta a seguir o global.', btns: [
       { label: 'Descartar e voltar ao global', cls: 'danger', go() {
-        if (sync.pending) flush();
+        if (SY.hasPending(sync)) flush();
         api.postMessage({ type: 'resetGroups', scope: 'workspace', op: 'Organização do projeto descartada' });
         undoSnap = null; ownShown = false; S.scopePref = 'global'; persist(); api.postMessage({ type: 'setScope', scope: 'global' }); announce('Voltando ao global.');
       } },
@@ -202,7 +196,7 @@
     if (org && !editing) h += gripBtn('gr', it.id, it.name, 'item reordenável', picked);
     if (editing) h += renameHTML('item', 'Nome do item', `<span class="iico">${ic(it.icon)}</span>`, it.name);
     else {
-      h += `<button type="button" class="ibtn" data-act="run" data-iid="${esc(it.id)}" data-fid="ib:${esc(it.id)}"${org ? ` data-kb="item:${esc(it.id)}" data-kbpick="1" aria-describedby="kbhelp"` : ''}${broken ? ` aria-label="${esc(it.name)}, não instalada"` : ''} title="${esc(it.name)}${broken ? ' (não instalada)' : ''}">` +
+      h += `<button type="button" class="ibtn" data-act="run" data-iid="${esc(it.id)}" data-fid="ib:${esc(it.id)}"${org ? ` data-kb="item:${esc(it.id)}" data-kbpick="1" aria-describedby="kbhelp"` : ''}${broken ? ` aria-label="${esc(it.name)}, não instalada"` : ''} title="${esc(it.name)} · ${esc(it.command)}${Array.isArray(it.args) && it.args.length ? ' (com argumentos)' : ''}${broken ? ' (não instalada)' : ''}">` +
         `<span class="iico"${org ? ` data-iconedit="${esc(it.id)}" title="Trocar ícone"` : ''}>${ic(it.icon)}</span><span class="iname">${hl(it.name)}</span>${
           broken ? `<span class="miss">${ic('circle-dashed', 'xxs')}<span class="t">Não instalado</span></span>` : ''}</button>`;
       if (org) h += `<button type="button" class="icbtn act kebab" data-act="imenu" data-iid="${esc(it.id)}" data-fid="ik:${esc(it.id)}" aria-haspopup="menu" aria-label="Ações de ${esc(it.name)}">${ic('ellipsis', 'sm')}</button>`;
@@ -273,42 +267,41 @@
     app.classList.toggle('is-drag-on', false);
     scrollEl.setAttribute('aria-busy', data ? 'false' : 'true');
     if (!data) return skeleton();
-    const org = S.mode === 'org', noG = !groups.length, ro = readOnly();
+    const org = S.mode === 'org', noG = !groups.length;
     const allEmpty = !noG && groups.every(g => !g.items.length);
     const q = fold(S.q.trim());
-    const dragOn = !ro && (org || noG || allEmpty);
+    const dragOn = org || noG || allEmpty;
     app.classList.toggle('is-drag-on', dragOn);
     const un = unassigned();
     let h = '';
     if (sync.error) h += `<div class="errbar" role="alert"><div class="t">${ic('circle-alert', 'sm')}<span>Não foi possível salvar: ${esc(sync.error)}. Suas alterações continuam aqui como rascunho.</span></div><div class="acts"><button type="button" class="btn" data-act="retry" data-fid="rt">Tentar de novo</button><button type="button" class="btn danger" data-act="discard">Descartar alterações</button></div></div>`;
     if (S.notice) h += `<div class="infobar" role="status">${ic('info', 'sm')}<span class="txt">${esc(S.notice)}</span><button type="button" class="btn" data-act="dismiss-notice" data-fid="nt">Entendi</button></div>`;
-    if (ro) h += `<div class="infobar">${ic('info', 'sm')}<span class="txt">Há configuração por pasta; ajuste no Settings. Aqui só leitura.</span><button type="button" class="btn" data-act="settings">Abrir Settings</button></div>`;
     if (noG) {
-      if (!S.welcomeDone && !ro) {
+      if (!S.welcomeDone) {
         h += `<section class="empty-state" aria-labelledby="wt">${illustration()}<h2 id="wt">Organize suas extensões em grupos.</h2><p>Crie grupos por assunto e chegue a cada ferramenta em um clique.</p><div class="acts"><button type="button" class="btn primary" data-act="suggest" data-fid="sg">Criar grupos sugeridos</button><button type="button" class="btn" data-act="zero">Começar do zero</button></div></section>${tipsHTML(false)}`;
-      } else if (!ro) {
+      } else {
         h += `<section class="empty-state" aria-labelledby="wt">${illustration()}<h2 id="wt">Nenhum grupo ainda</h2><p>Comece com um grupo vazio e arraste extensões para ele.</p><div class="acts"><button type="button" class="btn primary" data-act="newgroup" data-fid="cf">Criar primeiro grupo</button><button type="button" class="btn link" data-act="suggest">Usar grupos sugeridos</button></div></section>`;
       }
-      return h + (ro ? '' : zoneHTML() + trayHTML(un, '', true));
+      return h + zoneHTML() + trayHTML(un, '', true);
     }
     const broken = allItems().filter(i => i.installed === false).length;
-    const showTray = !ro && S.tab === 'all' && (org || allEmpty || (S.searchTray && Boolean(q)));
+    const showTray = S.tab === 'all' && (org || allEmpty || (S.searchTray && Boolean(q)));
     let al = '';
     if (broken && !S.dismissed.broken) al += `<div class="alert">${ic('circle-alert', 'sm')}<span class="txt">${pl(broken, 'item quebrado', 'itens quebrados')}</span><button type="button" class="lk" data-act="show-broken" data-fid="al1">${S.brokenOnly ? 'Mostrar todos' : 'Ver'}</button><button type="button" class="x" data-act="dismiss-broken" aria-label="Dispensar aviso de itens quebrados">${ic('x', 'xs')}</button></div>`;
-    if (un.length && !S.dismissed.un && !showTray && S.tab === 'all' && !ro) al += `<div class="alert">${ic('info', 'sm')}<span class="txt">${pl(un.length, 'extensão fora de grupos', 'extensões fora de grupos')}</span><button type="button" class="lk" data-act="show-tray" data-fid="al2">Ver</button><button type="button" class="x" data-act="dismiss-un" aria-label="Dispensar aviso de extensões fora de grupos">${ic('x', 'xs')}</button></div>`;
+    if (un.length && !S.dismissed.un && !showTray && S.tab === 'all') al += `<div class="alert">${ic('info', 'sm')}<span class="txt">${pl(un.length, 'extensão fora de grupos', 'extensões fora de grupos')}</span><button type="button" class="lk" data-act="show-tray" data-fid="al2">Ver</button><button type="button" class="x" data-act="dismiss-un" aria-label="Dispensar aviso de extensões fora de grupos">${ic('x', 'xs')}</button></div>`;
     if (al) h += `<div class="alerts">${al}</div>`;
-    if (allEmpty && !S.dismissed.hint && !q && !ro) h += `<div class="tips inline"><button type="button" class="x" data-act="dismiss-hint" aria-label="Dispensar dica">${ic('x', 'xs')}</button><span><b>Todos os grupos estão vazios.</b> Arraste uma extensão da bandeja para um grupo, ou use <b>⋯ &gt; Mover para…</b>.</span>${org ? '' : '<span><button type="button" class="btn" data-act="enter-org" data-fid="eo">Organizar</button></span>'}</div>`;
+    if (allEmpty && !S.dismissed.hint && !q) h += `<div class="tips inline"><button type="button" class="x" data-act="dismiss-hint" aria-label="Dispensar dica">${ic('x', 'xs')}</button><span><b>Todos os grupos estão vazios.</b> Arraste uma extensão da bandeja para um grupo, ou use <b>⋯ &gt; Mover para…</b>.</span>${org ? '' : '<span><button type="button" class="btn" data-act="enter-org" data-fid="eo">Organizar</button></span>'}</div>`;
     const filtered = Boolean(q) || S.tab === 'fav' || S.brokenOnly;
     let gl = '', total = 0;
     groups.forEach(g => {
       const vis = visItems(g, q);
       if (filtered && !vis.length) return;
-      total += vis.length; gl += groupHTML(g, vis, filtered, q, org && !ro, dragOn);
+      total += vis.length; gl += groupHTML(g, vis, filtered, q, org, dragOn);
     });
     S.resCount = total;
     if (!gl) {
       const trayHits = q ? un.filter(e => fold(e.name).indexOf(q) >= 0).length : 0;
-      if (q) h += `<section class="empty-state small">${ic('search-x', 'ill')}<h2>Nada para “${esc(S.q.trim())}”</h2><div class="acts"><button type="button" class="btn" data-act="clear-q" data-fid="cq">Limpar busca</button>${trayHits && !ro ? `<button type="button" class="btn link" data-act="search-tray">Procurar também nas não agrupadas (${trayHits})</button>` : ''}</div></section>`;
+      if (q) h += `<section class="empty-state small">${ic('search-x', 'ill')}<h2>Nada para “${esc(S.q.trim())}”</h2><div class="acts"><button type="button" class="btn" data-act="clear-q" data-fid="cq">Limpar busca</button>${trayHits ? `<button type="button" class="btn link" data-act="search-tray">Procurar também nas não agrupadas (${trayHits})</button>` : ''}</div></section>`;
       else if (S.brokenOnly) h += `<section class="empty-state small">${ic('check', 'ill')}<h2>Nenhum item quebrado</h2><div class="acts"><button type="button" class="btn" data-act="show-broken">Mostrar todos</button></div></section>`;
       else h += `<section class="empty-state small">${ic('star', 'ill')}<h2>Sem favoritos</h2><p>Toque na estrela de um item para fixá-lo aqui.</p></section>`;
     } else h += `<div class="groups" id="groups">${gl}</div>`;
@@ -347,18 +340,18 @@
   }
   function syncTop() {
     const org = S.mode === 'org', q = S.q.trim();
-    const dis = Boolean(q) || S.tab === 'fav' || readOnly() || !data;
+    const dis = Boolean(q) || S.tab === 'fav' || !data;
     btnOrg.disabled = dis;
     btnOrg.setAttribute('aria-pressed', org ? 'true' : 'false');
     btnOrg.innerHTML = `${ic(org ? 'check' : 'sliders-horizontal', 'sm')}<span class="lbl">${org ? 'Concluir' : 'Organizar'}</span>`;
     btnOrg.setAttribute('aria-label', org ? 'Concluir organização' : 'Organizar');
-    btnOrg.title = q ? 'Limpe a busca para organizar (evita reordenar uma lista filtrada).' : S.tab === 'fav' ? 'Organizar fica disponível na aba Todas.' : readOnly() ? 'Configuração por pasta: somente leitura. Ajuste no Settings.' : org ? 'Concluir organização' : 'Organizar: arrastar, renomear, cor e ícone';
+    btnOrg.title = q ? 'Limpe a busca para organizar (evita reordenar uma lista filtrada).' : S.tab === 'fav' ? 'Organizar fica disponível na aba Todas.' : org ? 'Concluir organização' : 'Organizar: arrastar, renomear, cor e ícone';
     $('#segAll').setAttribute('aria-pressed', S.tab === 'all' ? 'true' : 'false');
     $('#segFav').setAttribute('aria-pressed', S.tab === 'fav' ? 'true' : 'false');
     btnScope.innerHTML = `${ic(activeScope() === 'global' ? 'globe' : 'folder', 'xs')}<span class="lbl">${scopeName()}</span><span class="chev">${ic('chevron-down', 'xs')}</span>`;
     btnScope.setAttribute('aria-label', `Escopo: ${scopeName()}`);
     btnScope.title = `Escopo: ${scopeName()}${activeScope() === 'workspace' ? '. Itens fixados na barra de atividades valem para todos os projetos; edite no escopo Global.' : '. Itens fixados na barra de atividades são definidos aqui.'}`;
-    app.classList.toggle('is-org', org && !readOnly());
+    app.classList.toggle('is-org', org);
     $('#qClear').hidden = !S.q;
     const allCol = groups.length > 0 && groups.every(g => S.collapsed[g.id]);
     const fl = allCol ? 'Expandir todos' : 'Recolher todos';
@@ -546,7 +539,7 @@
     function draw(say) {
       const part = results.slice(0, shown);
       const rc = S.recents.filter(k => Object.hasOwn(I, k) && (!target.pin || inCat(k)));
-      rec.innerHTML = (!query.trim() && rc.length) ? `<div class="pk-sec">Recentes</div><div class="pk-grid small" role="listbox" aria-label="Ícones recentes">${rc.map(k => cell(k, false)).join('')}</div>` : '';
+      rec.innerHTML = (!query.trim() && rc.length) ? `<div class="pk-sec">Recentes</div><div class="pk-grid small" role="listbox" aria-label="Ícones recentes">${rc.map((k, i) => cell(k, i === 0)).join('')}</div>` : '';
       lbl.textContent = query.trim() ? pl(results.length, 'ícone', 'ícones') : (target.pin ? `Ícones fixáveis (${base.length})` : `Todos os ícones (${base.length})`);
       grid.innerHTML = part.length ? part.map((k, i) => cell(k, i === 0)).join('') : `<p class="pk-empty">Nenhum ícone para “${esc(query.trim())}”. Tente em inglês, ex.: git.</p>`;
       more.innerHTML = results.length > shown ? `<button type="button" class="pk-more" data-more-btn>Mostrar mais (${results.length - shown})</button>` : '';
@@ -580,7 +573,7 @@
     n.addEventListener('keydown', e => {
       if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); closePop(true); return; }
       if (e.target === inp) {
-        if (e.key === 'ArrowDown') { e.preventDefault(); const f = $('.pk-cell', grid); if (f) f.focus(); }
+        if (e.key === 'ArrowDown') { e.preventDefault(); const f = $('.pk-cell', rec) || $('.pk-cell', grid); if (f) f.focus(); }
         else if (e.key === 'Enter') { e.preventDefault(); const l = results.filter(k => !blocked(k)); if (l.length && query.trim()) choose(l[0]); }
         return;
       }
@@ -592,7 +585,9 @@
       else if (e.key === 'Home') ni = 0; else if (e.key === 'End') ni = cells.length - 1;
       else return;
       e.preventDefault();
-      if (ni < 0 && e.key === 'ArrowUp') { inp.focus(); return; }
+      const first = $('.pk-cell', rec);
+      if (ni < 0 && e.key === 'ArrowUp') { if (g2 === grid && first) first.focus(); else inp.focus(); return; }
+      if (ni >= cells.length && g2 !== grid && e.key === 'ArrowDown') { const mainFirst = $('.pk-cell', grid); if (mainFirst) mainFirst.focus(); return; }
       if (ni >= cells.length && g2 === grid && shown < results.length) { shown += PAGE; draw(false); const again = $$('.pk-cell', grid); if (again[ni]) { again[ni].tabIndex = 0; again[ni].focus(); } return; }
       if (ni >= 0 && ni < cells.length) { cells.forEach(c => { c.tabIndex = -1; }); cells[ni].tabIndex = 0; cells[ni].focus(); }
     });
@@ -678,6 +673,7 @@
   function newGroup() { return { id: M.newId('grp-'), name: 'Novo grupo', icon: 'folder', color: M.COLORS[groups.length % 9], items: [] }; }
   function placeItem(d, gid, index) {
     const pre = d.type === 'item' ? findItem(d.id) : null;
+    if (gid === null && groups.length >= M.MAX_GROUPS) { announce(`Limite de ${M.MAX_GROUPS} grupos atingido.`); return; }
     commit(() => {
       const it = takeItem(d); if (!it) return { skip: true };
       let g;
@@ -731,13 +727,13 @@
     });
   }
   function createGroup() {
+    if (groups.length >= M.MAX_GROUPS) { announce(`Limite de ${M.MAX_GROUPS} grupos atingido.`); toast({ text: `Limite de ${M.MAX_GROUPS} grupos atingido. Exclua um grupo para criar outro.` }); return; }
     commit(() => {
       const g = newGroup(); groups.push(g); S.edit = { type: 'group', id: g.id, sel: true, fresh: true };
       return { op: 'Grupo criado', say: 'Grupo criado. Digite o nome e tecle Enter.', focus: null };
     });
   }
   function suggest() {
-    if (readOnly()) return;
     sync.draft = false;
     api.postMessage({ type: 'useSuggested', scope: activeScope(), op: 'Grupos sugeridos' });
     S.welcomeDone = true; setSave('saving'); announce('Criando os grupos sugeridos.');
@@ -816,7 +812,6 @@
     app.classList.remove('is-dragging'); drag = null;
   }
   scrollEl.addEventListener('dragstart', e => {
-    if (readOnly()) { e.preventDefault(); return; }
     const li = e.target.closest && e.target.closest('li.item[draggable="true"]');
     const gh = e.target.closest && e.target.closest('.ghead[draggable="true"]');
     if (li && li.classList.contains('tray-item')) drag = { type: 'tray', ext: li.dataset.ext, el: li };
@@ -907,8 +902,10 @@
       if (k === 'Escape') { e.preventDefault(); e.stopPropagation(); const s1 = S.kb.s, kd2 = S.kb.kind; restoreSnap(s1); render(`${kd2}:${id}`); announce('Movimento cancelado'); }
       return;
     }
-    if (S.mode !== 'org' || S.kb || readOnly()) return;
-    if (e.altKey && (k === 'ArrowUp' || k === 'ArrowDown')) {
+    if (S.mode !== 'org') return;
+    const pickKey = (k === ' ' && t.dataset.kbpick) || (k === 'Enter' && t.classList.contains('grip'));
+    if (S.kb && !pickKey) return;
+    if (e.altKey && !S.kb && (k === 'ArrowUp' || k === 'ArrowDown')) {
       e.preventDefault();
       commit(() => {
         const r = kbShift(type, id, 0, k === 'ArrowUp' ? -1 : 1);
@@ -917,11 +914,14 @@
       });
       return;
     }
-    if ((k === ' ' && t.dataset.kbpick) || (k === 'Enter' && t.classList.contains('grip'))) {
+    if (pickKey) {
       e.preventDefault();
+      // Picking another element while one is held cancels the first one (its move is undone) and says so.
+      let cancelled = '';
+      if (S.kb) { cancelled = `Movimento de ${nameOf(S.kb.type, S.kb.id)} cancelado. `; restoreSnap(S.kb.s); S.kb = null; }
       S.kb = { type, id, s: snap(), kind };
       render(fidNow);
-      announce(`${nameOf(type, id)} pego. Use as setas para cima e para baixo para mover${type === 'item' ? ', as setas para a direita e esquerda trocam de grupo' : ''}, Espaço solta, Esc cancela.`);
+      announce(`${cancelled}${nameOf(type, id)} pego. Use as setas para cima e para baixo para mover${type === 'item' ? ', as setas para a direita e esquerda trocam de grupo' : ''}, Espaço solta, Esc cancela.`);
     }
   }
   app.addEventListener('keydown', kbKey);
@@ -951,7 +951,7 @@
         if (f.it.installed === false) {
           openDialog(b, { title: 'Extensão não instalada', text: `“${f.it.name}”: esta extensão não está instalada.`, btns: [
             ...(f.it.extensionId ? [{ label: 'Ver no Marketplace', go() { api.postMessage({ type: 'openMarketplace', extensionId: f.it.extensionId }); } }] : []),
-            ...(readOnly() ? [] : [{ label: 'Remover do grupo', cls: 'danger', go() { removeItem(iid); } }]),
+            { label: 'Remover do grupo', cls: 'danger', go() { removeItem(iid); } },
             { label: 'Cancelar' }
           ] });
           break;
@@ -1001,7 +1001,7 @@
   });
   scrollEl.addEventListener('dblclick', e => {
     const gn = e.target.closest('.gname');
-    if (gn && S.mode === 'org' && !readOnly()) { S.edit = { type: 'group', id: gn.closest('.group').dataset.gid, sel: true }; render(null); }
+    if (gn && S.mode === 'org') { S.edit = { type: 'group', id: gn.closest('.group').dataset.gid, sel: true }; render(null); }
   });
   scrollEl.addEventListener('keydown', e => {
     const inp = e.target.closest && e.target.closest('[data-edit]'); if (!inp) return;
@@ -1052,14 +1052,14 @@
     const s = data.scope;
     const entries = [
       { label: 'Global', hint: 'Vale para todos os projetos', radio: true, checked: s.active === 'global', go() { setScope('global'); } },
-      { label: 'Este projeto', hint: s.hasWorkspace ? 'Só neste projeto; prevalece sobre o global' : 'Abra uma pasta para usar este escopo.', radio: true, checked: s.active === 'workspace', disabled: !s.hasWorkspace, go() { setScope('workspace'); } }
+      { label: 'Este projeto', hint: !s.hasWorkspace ? 'Abra uma pasta para usar este escopo.' : s.trusted === false ? 'Pasta não confiável: confie na pasta para usar este escopo.' : 'Só neste projeto; prevalece sobre o global', radio: true, checked: s.active === 'workspace', disabled: !s.hasWorkspace || s.trusted === false, go() { setScope('workspace'); } }
     ];
-    if (s.active === 'workspace' && s.projectOverride && !s.readOnly) entries.push({ sep: true }, { label: 'Voltar ao global…', ic: 'undo-2', go() { askReset(); } });
+    if (s.active === 'workspace' && s.projectOverride) entries.push({ sep: true }, { label: 'Voltar ao global…', ic: 'undo-2', go() { askReset(); } });
     openMenu(btnScope, entries, { label: 'Escopo' });
   });
   function setScope(s) {
     if (data && s === activeScope()) { btnScope.focus(); return; }
-    if (sync.pending) flush(); // a pending save keeps the scope it was made in
+    if (SY.hasPending(sync)) flush(); // a pending save keeps the scope it was made in
     S.scopePref = s; undoSnap = null; hideToast(); S.edit = null; S.kb = null; S.confirmDel = null; S.notice = null; persist();
     api.postMessage({ type: 'setScope', scope: s }); btnScope.focus();
     announce(`Escopo: ${s === 'global' ? 'Global' : 'Este projeto'}.`);
@@ -1088,7 +1088,7 @@
       S.collapsed = {}; groups.forEach(x => { S.collapsed[x.id] = x.id !== g.id; });
     } else S.collapsed[g.id] = false;
     S.tab = 'all'; S.q = ''; qEl.value = ''; S.brokenOnly = false; S.searchTray = false; S.edit = null; S.confirmDel = null; S.kb = null;
-    S.mode = m.organize && !readOnly() ? 'org' : 'use';
+    S.mode = m.organize ? 'org' : 'use';
     persist(); fullRender(null);
     const sec = $(`.group[data-gid="${cssq(g.id)}"]`, scrollEl);
     if (sec) {
@@ -1120,11 +1120,8 @@
   function onData(message) {
     lastData = message; data = message;
     const scope = message.scope.active;
-    if (!sync.draft || groupsScope !== scope) { groups = M.clone(message.groups); groupsScope = scope; sync.draft = false; }
-    else {
-      const favorites = new Map(message.groups.flatMap(g => g.items.map(i => [i.id, i.favorite])));
-      for (const g of groups) for (const i of g.items) if (favorites.has(i.id)) i.favorite = favorites.get(i.id);
-    }
+    const merged = SY.merge(sync, { groups, scope: groupsScope }, message);
+    groups = merged.groups; groupsScope = merged.scope;
     slowTimers.forEach(clearTimeout); S.slow = '';
     app.setAttribute('aria-busy', 'false');
     fullRender();
@@ -1141,7 +1138,7 @@
       if (!data && m.type !== 'restoreFold') return;
       if (m.type === 'focusGroup') onFocusGroup(m);
       else if (m.type === 'restoreFold') onRestoreFold();
-      else if (data && !readOnly()) { S.mode = 'org'; fullRender('org'); announce('Modo Organizar ativado.'); }
+      else if (data) { S.mode = 'org'; fullRender('org'); announce('Modo Organizar ativado.'); }
       if (typeof m.seq === 'number') api.postMessage({ type: 'focusAck', seq: m.seq });
     }
   });

@@ -6,6 +6,7 @@
   const COLORS = ['g-1', 'g-2', 'g-3', 'g-4', 'g-5', 'g-6', 'g-7', 'g-8', 'g-9', 'g-10'];
   const COLOR_NAMES = ['Azul', 'Violeta', 'Rosa', 'Vermelho', 'Laranja', 'Âmbar', 'Verde', 'Turquesa', 'Ciano', 'Ardósia'];
   const NEUTRAL = 'g-10';
+  const MAX_GROUPS = 100; // same limit as src/config.js (a test keeps them equal)
   const clone = value => JSON.parse(JSON.stringify(value));
   let counter = 0;
   function newId(prefix) {
@@ -107,6 +108,7 @@
 
   function createGroup(groups, props = {}, at) {
     const group = { id: newId('grp-'), name: props.name || 'Novo grupo', icon: props.icon || 'folder', color: props.color || COLORS[groups.length % 9], items: props.items || [] };
+    if (groups.length >= MAX_GROUPS) return { groups, changed: false };
     const next = clone(groups);
     next.splice(at == null ? next.length : at, 0, group);
     return { groups: next, changed: true, group };
@@ -248,7 +250,7 @@
     COLORS, COLOR_NAMES, NEUTRAL, clone, newId, normalize, colorOf, locate,
     moveItem, moveItemToIndex, stepItem, moveGroup, moveGroupToIndex, stepGroup,
     itemFromExtension, insertItem, createGroup, removeItem, removeGroup, updateGroup, updateItem,
-    serialize, computeUnassigned, searchIcons,
+    MAX_GROUPS, serialize, computeUnassigned, searchIcons,
     pinKey, pinOwner, pinState, setPinned, replacePin, pinWithIcon, iconBlock
   };
   root.groupModel = api;
