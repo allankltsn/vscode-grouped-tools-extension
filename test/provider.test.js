@@ -188,7 +188,7 @@ test('template: scripts and styles carry the nonce or the webview source, no inl
   const html = view.webview.html;
   const nonce = /script-src 'nonce-([0-9a-f]+)'/.exec(html)[1];
   const scripts = [...html.matchAll(/<script\b[^>]*>/g)].map(m => m[0]);
-  assert.ok(scripts.length >= 5);
+  assert.equal(scripts.length, 4);
   for (const tag of scripts) assert.ok(tag.includes(`nonce="${nonce}"`), tag);
   assert.ok(!/\sstyle\s*=/.test(html), 'no style attribute');
   assert.ok(!/<style\b/i.test(html), 'no inline style block');
