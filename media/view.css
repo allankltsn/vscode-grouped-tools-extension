@@ -417,3 +417,7 @@ li.empty .lk:hover{background:var(--hover)}
   .gtoggle{gap:var(--sp-2)}
   .pinbadge{border:0;padding:0;height:auto}
 }
+.remember{display:flex;align-items:center;gap:var(--sp-3);min-height:28px;margin-bottom:var(--sp-2);font-size:var(--fs-meta);color:var(--fg-dim)}
+.remember input{margin:0;width:16px;height:16px;accent-color:var(--accent)}
+.isub{color:var(--fg-dim);font-size:var(--fs-meta)}
+.ic.png{object-fit:contain;stroke:none;fill:none}

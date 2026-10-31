@@ -142,3 +142,10 @@ test('pin menu text says both places; pinning creates both, unpinning removes bo
   assert.equal(pinned[0].pinned, true);
   assert.equal('pinned' in M.setPinned(pinned, 'a', false).groups[0], false);
 });
+
+test('panel: pin menu names both bars; the remember checkbox says the limitation', () => {
+  const view = fs.readFileSync(path.join(root, 'media', 'view.js'), 'utf8');
+  assert.ok(view.includes('Fixar na barra de atividades e na barra de status'));
+  assert.ok(view.includes('O VS Code não permite que uma extensão oculte o ícone de outra'));
+  assert.ok(view.includes('Lembrar de ocultar o ícone ao adicionar'));
+});

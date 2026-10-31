@@ -19,6 +19,15 @@
     if (Object.hasOwn(ALIASES, n) && Object.hasOwn(I, ALIASES[n])) return I[ALIASES[n]];
     return I.puzzle || '';
   }
+  // Original icon of an extension (sanitized by the extension host, re-checked here); falls back to the chosen icon.
+  // A user-chosen item icon wins: only the generic default is replaced.
+  function eic(entity, cls) {
+    const generic = !entity.icon || entity.icon === 'extensions' || entity.icon === 'puzzle';
+    const img = generic && entity.iconKey && data && data.icons && window.svgSafe ? window.svgSafe.checkImage(data.icons[entity.iconKey]) : null;
+    if (!img) return ic(entity.icon, cls);
+    if (img.kind === 'svg') return `<svg class="ic${cls ? ` ${cls}` : ''}" viewBox="${img.viewBox}" aria-hidden="true" focusable="false">${img.body}</svg>`;
+    return `<img class="ic png${cls ? ` ${cls}` : ''}" src="${img.src}" alt="" width="16" height="16">`;
+  }
   function ic(name, cls) {
     return `<svg class="ic${cls ? ` ${cls}` : ''}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${iconBody(name)}</svg>`;
   }
@@ -38,7 +47,7 @@
     trayCollapsed: typeof saved.trayCollapsed === 'boolean' ? saved.trayCollapsed : null, trayQ: '', searchTray: false, brokenOnly: false,
     dismissed: { hint: saved.hintDismissed === true }, welcomeDone: false, edit: null, confirmDel: null, kb: null, notice: null, save: '',
     recents: list(saved.recents).filter(n => typeof n === 'string').slice(0, 12), scopePref: saved.scope === 'workspace' || saved.scope === 'global' ? saved.scope : undefined,
-    slow: '', resCount: 0
+    slow: '', resCount: 0, remember: saved.remember === true
   };
   let data = null, lastData = null, groups = [], groupsScope = null;
   let drag = null, rendering = false, pop = null, undoSnap = null, ownShown = false;
@@ -50,7 +59,7 @@
   qEl.value = S.q;
 
   function persist() {
-    api.setState({ tab: S.tab, q: S.q, collapsed: S.collapsed, prevCollapsed: S.prevCollapsed, trayCollapsed: S.trayCollapsed, hintDismissed: S.dismissed.hint === true, recents: S.recents, scope: S.scopePref });
+    api.setState({ tab: S.tab, q: S.q, collapsed: S.collapsed, prevCollapsed: S.prevCollapsed, trayCollapsed: S.trayCollapsed, hintDismissed: S.dismissed.hint === true, recents: S.recents, scope: S.scopePref, remember: S.remember });
   }
   const activeScope = () => (data && data.scope ? data.scope.active : 'global');
   const scopeName = () => (activeScope() === 'global' ? 'Global' : 'Este projeto');
@@ -63,7 +72,17 @@
   const snap = () => JSON.stringify(groups);
   function restoreSnap(s) { groups = JSON.parse(s); S.edit = null; S.confirmDel = null; S.kb = null; }
   const extByCommand = command => list(data && data.extensions).find(e => e.command === command) || null;
-  const unassigned = () => (data ? M.computeUnassigned(list(data.extensions), groups) : []);
+  // One row per extension (an extension with several containers is one row; `parts` has its containers).
+  function unassigned() {
+    if (!data) return [];
+    const rows = new Map();
+    for (const e of M.computeUnassigned(list(data.extensions), groups)) {
+      const key = e.extensionId || e.command;
+      if (!rows.has(key)) rows.set(key, { ...e, parts: [] });
+      rows.get(key).parts.push(e);
+    }
+    return [...rows.values()].map(r => ({ ...r, sub: r.parts.length > 1 ? pl(r.parts.length, 'painel', 'painéis') : '' }));
+  }
 
   // ---- announcements and toast ------------------------------------------------------------------------
   function announce(msg) {
@@ -147,8 +166,13 @@
     const acts = [{ label: 'Desfazer', fn: undo }];
     let text = r.op;
     if (own) { text += '. Este projeto agora tem organização própria.'; acts.push({ label: 'Voltar ao global', fn: askReset }); }
-    toast({ text, actions: acts });
+    if (r.hint) { text += `. ${r.hint}`; acts.push({ label: 'Copiar passo', fn: () => copyText(r.hint) }); }
+    toast({ text, actions: acts, ttl: r.hint ? 15000 : undefined });
     queueSave('saveGroups', r.op);
+  }
+  function copyText(text) {
+    const done = () => announce('Passo copiado.');
+    try { navigator.clipboard.writeText(text).then(done, () => announce(text)); } catch { announce(text); }
   }
   function commit(fn) {
     const before = snap(); const r = fn() || {};
@@ -197,7 +221,7 @@
     if (editing) h += renameHTML('item', 'Nome do item', `<span class="iico">${ic(it.icon)}</span>`, it.name);
     else {
       h += `<button type="button" class="ibtn" data-act="run" data-iid="${esc(it.id)}" data-fid="ib:${esc(it.id)}"${org ? ` data-kb="item:${esc(it.id)}" data-kbpick="1" aria-describedby="kbhelp"` : ''}${broken ? ` aria-label="${esc(it.name)}, não instalada"` : ''} title="${esc(it.name)} · ${esc(it.command)}${Array.isArray(it.args) && it.args.length ? ' (com argumentos)' : ''}${broken ? ' (não instalada)' : ''}">` +
-        `<span class="iico"${org ? ` data-iconedit="${esc(it.id)}" title="Trocar ícone"` : ''}>${ic(it.icon)}</span><span class="iname">${hl(it.name)}</span>${
+        `<span class="iico"${org ? ` data-iconedit="${esc(it.id)}" title="Trocar ícone"` : ''}>${eic(it)}</span><span class="iname">${hl(it.name)}</span>${
           broken ? `<span class="miss">${ic('circle-dashed', 'xxs')}<span class="t">Não instalado</span></span>` : ''}</button>`;
       if (org) h += `<button type="button" class="icbtn act kebab" data-act="imenu" data-iid="${esc(it.id)}" data-fid="ik:${esc(it.id)}" aria-haspopup="menu" aria-label="Ações de ${esc(it.name)}">${ic('ellipsis', 'sm')}</button>`;
       h += `<button type="button" class="icbtn act star" data-act="star" data-iid="${esc(it.id)}" data-fid="st:${esc(it.id)}" aria-pressed="${it.favorite ? 'true' : 'false'}" aria-label="Favorito: ${esc(it.name)}" title="${it.favorite ? 'Remover dos favoritos' : 'Favoritar'}">${ic('star', 'sm')}</button>`;
@@ -241,14 +265,14 @@
     let collapsed = S.trayCollapsed === null ? un.length === 0 : S.trayCollapsed;
     if (forceOpen && un.length) collapsed = false;
     const dragOn = app.classList.contains('is-drag-on');
-    let h = `<section class="tray grp g-10${collapsed ? ' is-collapsed' : ''}" aria-label="Não agrupadas" id="tray"><div class="tray-h"><button type="button" class="tt" data-act="tray-toggle" data-fid="tt" aria-expanded="${collapsed ? 'false' : 'true'}"><span class="chev">${ic('chevron-down', 'xs')}</span><span>Não agrupadas</span><span class="ncount">${un.length}</span></button></div><div class="tray-body">`;
+    let h = `<section class="tray grp g-10${collapsed ? ' is-collapsed' : ''}" aria-label="Não agrupadas" id="tray"><div class="tray-h"><button type="button" class="tt" data-act="tray-toggle" data-fid="tt" aria-expanded="${collapsed ? 'false' : 'true'}"><span class="chev">${ic('chevron-down', 'xs')}</span><span>Não agrupadas</span><span class="ncount">${un.length}</span></button></div><div class="tray-body"><label class="remember" title="O VS Code não permite que uma extensão oculte o ícone de outra. Ao adicionar, o painel mostra o passo para ocultar."><input type="checkbox" data-act="remember" data-fid="rm"${S.remember ? ' checked' : ''}><span>Lembrar de ocultar o ícone ao adicionar</span></label>`;
     if (!list(data && data.extensions).length) h += '<p class="tray-ok">Nenhuma extensão com painel encontrada.</p>';
     else if (!un.length) h += `<p class="tray-ok">${ic('check', 'sm')}Tudo agrupado.</p>`;
     else {
       if (un.length > 8) h += `<input class="tray-filter" data-fid="tf" id="trayQ" type="search" placeholder="Filtrar não agrupadas…" aria-label="Filtrar não agrupadas" value="${esc(S.trayQ)}">`;
       h += '<ul class="tray-list" aria-label="Extensões não agrupadas">';
       if (!items.length) h += '<li class="tray-ok">Nada encontrado.</li>';
-      h += items.map(e => `<li class="item tray-item" data-ext="${esc(e.command)}"${dragOn ? ' draggable="true"' : ''}><span class="ibtn" title="${esc(e.views ? `${e.name}: ${e.views}` : e.name)}"><span class="iico">${ic(e.icon)}</span><span class="iname">${hl(e.name)}</span></span>` +
+      h += items.map(e => `<li class="item tray-item" data-ext="${esc(e.command)}"${dragOn ? ' draggable="true"' : ''}><span class="ibtn" title="${esc(e.parts && e.parts.length > 1 ? `${e.name}: ${e.parts.map(p => p.views || p.container).join('; ')}` : e.views ? `${e.name}: ${e.views}` : e.name)}"><span class="iico">${eic(e)}</span><span class="iname">${hl(e.name)}${e.sub ? `<span class="isub"> · ${esc(e.sub)}</span>` : ''}</span></span>` +
         `<button type="button" class="add" data-act="addto" data-ext="${esc(e.command)}" data-fid="ad:${esc(e.command)}" aria-haspopup="menu" aria-label="Adicionar ${esc(e.name)} a um grupo" title="Adicionar a…">${ic('plus', 'xs')}<span class="t">Adicionar a…</span></button></li>`).join('');
       h += '</ul>';
     }
@@ -287,7 +311,7 @@
       return h + zoneHTML() + trayHTML(un, '', true);
     }
     const broken = allItems().filter(i => i.installed === false).length;
-    const showTray = S.tab === 'all' && (org || allEmpty || (S.searchTray && Boolean(q)));
+    const showTray = S.tab === 'all' && (!q || S.searchTray);
     let al = '';
     if (broken && !S.dismissed.broken) al += `<div class="alert">${ic('circle-alert', 'sm')}<span class="txt">${pl(broken, 'item quebrado', 'itens quebrados')}</span><button type="button" class="lk" data-act="show-broken" data-fid="al1">${S.brokenOnly ? 'Mostrar todos' : 'Ver'}</button><button type="button" class="x" data-act="dismiss-broken" aria-label="Dispensar aviso de itens quebrados">${ic('x', 'xs')}</button></div>`;
     if (un.length && !S.dismissed.un && !showTray && S.tab === 'all') al += `<div class="alert">${ic('info', 'sm')}<span class="txt">${pl(un.length, 'extensão fora de grupos', 'extensões fora de grupos')}</span><button type="button" class="lk" data-act="show-tray" data-fid="al2">Ver</button><button type="button" class="x" data-act="dismiss-un" aria-label="Dispensar aviso de extensões fora de grupos">${ic('x', 'xs')}</button></div>`;
@@ -684,7 +708,8 @@
       g.items.splice(at, 0, it); S.collapsed[g.id] = false; persist();
       if (pre && pre.g.id === g.id && pre.i === at) return { skip: true, focus: `ib:${it.id}` };
       const verb = d.type === 'item' ? 'movido para' : 'adicionado a';
-      return { op: `${it.name} ${verb} ${g.name}`, say: `${it.name} ${verb} ${g.name}, posição ${at + 1} de ${g.items.length}${gid === null ? '. Digite o nome do novo grupo.' : ''}`, focus: gid === null ? null : `ib:${it.id}` };
+      const hint = d.type === 'tray' && S.remember ? `Para liberar a barra de atividades: clique com o botão direito no ícone de ${it.name} e escolha Ocultar.` : '';
+      return { hint, op: `${it.name} ${verb} ${g.name}`, say: `${it.name} ${verb} ${g.name}, posição ${at + 1} de ${g.items.length}${gid === null ? '. Digite o nome do novo grupo.' : ''}`, focus: gid === null ? null : `ib:${it.id}` };
     });
   }
   function removeItem(iid) {
@@ -973,9 +998,13 @@
       case 'imenu': openMenu(b, itemMenu(iid), { label: 'Ações do item' }); break;
       case 'gadd': openMenu(b, addItemMenu(gid), { label: 'Adicionar item' }); break;
       case 'addto': {
-        const ext = b.dataset.ext;
-        openMenu(b, [{ head: 'Adicionar a…' }].concat(groupChoices(g => placeItem({ type: 'tray', ext }, g, Infinity), true, null)), { label: 'Adicionar a um grupo' }); break;
+        const row = unassigned().find(r => r.command === b.dataset.ext); if (!row) break;
+        const target = cmd => [{ head: 'Adicionar a…' }].concat(groupChoices(g => placeItem({ type: 'tray', ext: cmd }, g, Infinity), true, null));
+        if (row.parts.length > 1) openMenu(b, [{ head: `${row.name}: escolha o painel` }].concat(row.parts.map(p => ({ label: p.views || p.container || p.name, ic: p.icon, sub() { return target(p.command); } }))), { label: 'Painéis da extensão' });
+        else openMenu(b, target(row.command), { label: 'Adicionar a um grupo' });
+        break;
       }
+      case 'remember': S.remember = b.checked; persist(); announce(S.remember ? 'Vou lembrar de ocultar o ícone ao adicionar.' : 'Lembrete de ocultar desligado.'); break;
       case 'newgroup': createGroup(); break;
       case 'del-ok': doDelete(gid); break;
       case 'del-cancel': S.confirmDel = null; render(`gk:${gid}`); announce('Exclusão cancelada'); break;

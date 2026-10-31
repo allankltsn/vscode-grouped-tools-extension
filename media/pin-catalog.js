@@ -43,7 +43,10 @@
   const viewId = icon => `groupedTools.pin.${icon}.view`;
   const contextKey = icon => `groupedTools.pinned.${String(icon).replace(/-/g, '_')}`;
 
-  const api = { PIN_ICONS, ICON_ALIASES, pinIcon, pinName, pinCodicon, containerId, viewId, contextKey };
+  // Lucide icon of the catalog whose status-bar codicon is `name` (used for `$(codicon)` container icons), or null.
+  const lucideForCodicon = name => PIN_ICONS.find(icon => CODICONS[icon] === name) || null;
+
+  const api = { lucideForCodicon, PIN_ICONS, ICON_ALIASES, pinIcon, pinName, pinCodicon, containerId, viewId, contextKey };
   root.pinCatalog = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const { readGroups, validateGroups, favoriteKey, favoriteHash, HIDDEN, extensionContainer, pinnedGroups } = require('./config');
 const { runItem } = require('./commands');
 const catalog = require('../media/pin-catalog');
+const { resolveIcon } = require('./ext-icons');
 
 const SCOPES = ['global', 'workspace'];
 const MAX_OP = 200;
@@ -42,11 +43,16 @@ const collapseBlanks = text => text.replace(BLANK_RUN, run => `␠×${blankLengt
 const mostlyBlank = text => text.length > 100 && (text.match(BLANK_ANY) || []).length > text.length / 2;
 const GROUP_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
+// Workbench containers that extensions only add views to (no `workbench.view.extension.<key>` command), and this
+// extension's own containers: they are not worth listing as "not grouped".
+const WORKBENCH_CONTAINERS = new Set(['explorer', 'debug', 'scm', 'test', 'remote', 'timeline', 'outline', 'groupedTools']);
+const hiddenContainer = key => WORKBENCH_CONTAINERS.has(key) || key.startsWith('groupedTools.pin.');
+
 function listViewExtensions() {
   return vscode.extensions.all.flatMap(extension => {
     const manifest = extension.packageJSON;
-    return Object.entries(manifest.contributes?.views || {}).map(([container, views]) => ({
-      name: manifest.displayName || manifest.name, extensionId: extension.id,
+    return Object.entries(manifest.contributes?.views || {}).filter(([container]) => !hiddenContainer(container)).map(([container, views]) => ({
+      name: manifest.displayName || manifest.name, extensionId: extension.id, container,
       command: `workbench.view.extension.${container}`,
       icon: 'extensions', views: views.map(v => v.name).join(', ')
     }));
@@ -83,7 +89,7 @@ function describeItem(item, favorites, containers) {
 }
 
 class ToolsView {
-  constructor(context, commandApi) { this.context = context; this.commandApi = commandApi; this.seq = 0; this.pending = null; this.navigating = false; this.navigationMs = NAVIGATION_MS; this.graceMs = NAVIGATION_GRACE_MS; }
+  constructor(context, commandApi) { this.context = context; this.commandApi = commandApi; this.seq = 0; this.pending = null; this.iconCache = new Map(); this.navigating = false; this.navigationMs = NAVIGATION_MS; this.graceMs = NAVIGATION_GRACE_MS; }
 
   mediaUri(...parts) { return vscode.Uri.joinPath(this.context.extensionUri, 'media', ...parts); }
 
@@ -116,7 +122,7 @@ class ToolsView {
     view.webview.html = template
       .replaceAll('{{nonce}}', nonce).replaceAll('{{csp}}', view.webview.cspSource)
       .replace('{{css}}', uri('view.css')).replace('{{icons}}', uri('icons.js')).replace('{{catalog}}', uri('pin-catalog.js'))
-      .replace('{{model}}', uri('model.js')).replace('{{sync}}', uri('sync.js')).replace('{{js}}', uri('view.js'));
+      .replace('{{svg}}', uri('svg-safe.js')).replace('{{model}}', uri('model.js')).replace('{{sync}}', uri('sync.js')).replace('{{js}}', uri('view.js'));
   }
 
   isTrusted() { return vscode.workspace.isTrusted !== false; }
@@ -329,26 +335,46 @@ class ToolsView {
     if (item) await runItem(this.commandApi, item);
   }
 
+  // Original icon of an extension container, cached per extension version; `icons` collects what the message references.
+  iconRef(extensionId, container, icons, byId) {
+    const extension = extensionId && byId.get(extensionId);
+    if (!extension) return undefined;
+    const key = `${extensionId}@${extension.packageJSON?.version || ''}/${container || ''}`;
+    if (!this.iconCache.has(key)) {
+      if (this.iconCache.size > 500) this.iconCache.clear();
+      this.iconCache.set(key, resolveIcon(extension, container));
+    }
+    const image = this.iconCache.get(key);
+    if (!image) return undefined;
+    icons[key] = image;
+    return key;
+  }
+
   refresh() {
     if (!this.view) return;
     const favorites = new Set(this.context.workspaceState.get('favorites', []));
     const inspected = this.inspectGroups();
     const scope = this.scopeState(inspected);
     const containers = containerIndex();
+    const icons = {}, byId = new Map(vscode.extensions.all.map(e => [e.id, e]));
     const report = { dropped: 0 };
     const groups = readGroups(this.rawGroups(inspected, scope), { pins: scope.active === 'global', report }).map(g => ({
       id: g.id, name: g.name, icon: g.icon, color: g.color, ...(g.pinned ? { pinned: true } : {}),
-      items: g.items.map(i => describeItem(i, favorites, containers))
+      items: g.items.map(i => {
+        const d = describeItem(i, favorites, containers);
+        const iconKey = d.kind === 'extension' ? this.iconRef(d.extensionId, extensionContainer(d.command) ?? undefined, icons, byId) : undefined;
+        return iconKey ? { ...d, iconKey } : d;
+      })
     }));
     const assigned = new Map();
     for (const g of groups) for (const i of g.items) if (!assigned.has(i.command)) assigned.set(i.command, g);
-    const all = listViewExtensions().map(e => ({ ...e, ...(assigned.has(e.command) ? { groupId: assigned.get(e.command).id, groupName: assigned.get(e.command).name } : {}) }));
-    const unassigned = all.filter(e => !assigned.has(e.command)).map(({ extensionId, name, command, icon, views }) => ({ extensionId, name, command, icon, views }));
+    const all = listViewExtensions().map(e => ({ ...e, ...(this.iconRef(e.extensionId, e.container, icons, byId) ? { iconKey: this.iconRef(e.extensionId, e.container, icons, byId) } : {}), ...(assigned.has(e.command) ? { groupId: assigned.get(e.command).id, groupName: assigned.get(e.command).name } : {}) }));
+    const unassigned = all.filter(e => !assigned.has(e.command)).map(({ extensionId, name, command, icon, views, container, iconKey }) => ({ extensionId, name, command, icon, views, container, ...(iconKey ? { iconKey } : {}) }));
     const flat = groups.flatMap(g => g.items);
     const pins = pinnedGroups(this.globalGroups()).map(g => ({ groupId: g.id, icon: catalog.pinIcon(g.icon), name: g.name }));
     this.view.webview.postMessage({
       type: 'data', groups, scope, workspace: vscode.workspace.name || 'Pessoal', hasWorkspace: scope.hasWorkspace,
-      extensions: all, unassigned, pins,
+      extensions: all, unassigned, pins, icons,
       stats: { invalid: report.dropped, items: flat.length, groups: groups.length, unassigned: unassigned.length, broken: flat.filter(i => i.installed === false).length }
     });
   }

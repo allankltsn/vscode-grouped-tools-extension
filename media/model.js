@@ -94,7 +94,7 @@
 
   function itemFromExtension(ext) {
     return { id: newId('new-'), name: ext.name, command: ext.command, icon: ext.icon || 'extensions', favorite: false,
-      kind: 'extension', extensionId: ext.extensionId, installed: true };
+      kind: 'extension', extensionId: ext.extensionId, installed: true, ...(ext.iconKey ? { iconKey: ext.iconKey } : {}) };
   }
 
   function insertItem(groups, groupId, item, beforeId) {

@@ -36,7 +36,7 @@ function setup(overrides = {}) {
     StatusBarAlignment: { Left: 1, Right: 2 },
     MarkdownString,
     extensions: {
-      all: [{ id: 'test.spotify', packageJSON: { name: 'Spotify', contributes: { views: { 'vscode-spotify': [{ name: 'Playlists' }] } } } }],
+      all: overrides.extensions || [{ id: 'test.spotify', packageJSON: { name: 'Spotify', contributes: { views: { 'vscode-spotify': [{ name: 'Playlists' }] } } } }],
       getExtension: id => (id === 'test.spotify' ? { extensionUri: { fsPath: 'C:/ext/spotify', toString() { return 'file:///c%3A/ext/spotify'; } }, packageJSON: { icon: 'img/icon.png' } } : undefined),
       onDidChange: f => (handlers.extensions.push(f), mk())
     },
@@ -191,7 +191,7 @@ test('template: scripts and styles carry the nonce or the webview source, no inl
   const html = view.webview.html;
   const nonce = /script-src 'nonce-([0-9a-f]+)'/.exec(html)[1];
   const scripts = [...html.matchAll(/<script\b[^>]*>/g)].map(m => m[0]);
-  assert.equal(scripts.length, 5);
+  assert.equal(scripts.length, 6);
   for (const tag of scripts) assert.ok(tag.includes(`nonce="${nonce}"`), tag);
   assert.ok(!/\sstyle\s*=/.test(html), 'no style attribute');
   assert.ok(!/<style\b/i.test(html), 'no inline style block');
@@ -708,4 +708,28 @@ test('first activation: opens the panel once and tells where the icon is (positi
   await new Promise(r => setImmediate(r));
   assert.equal(again.calls.filter(c => c[0] === 'workbench.view.extension.groupedTools').length, 0);
   assert.equal(again.infos.length, 0);
+});
+
+test('icons: original container icons reach the webview sanitized, referenced by key; hostile ones fall back', async () => {
+  const dir = require('node:fs').mkdtempSync(path.join(require('node:os').tmpdir(), 'gt-ext-'));
+  require('node:fs').writeFileSync(path.join(dir, 'ok.svg'), '<svg viewBox="0 0 24 24"><path d="M2 2h20"/></svg>');
+  require('node:fs').writeFileSync(path.join(dir, 'bad.svg'), '<svg viewBox="0 0 24 24"><script>alert(1)</script><path d="M2 2h20"/></svg>');
+  const mk = (id, name, icon, views) => ({ id, extensionPath: dir, packageJSON: { name, version: '1.0.0', contributes: { views: { [name]: [{ name: 'V' }] }, viewsContainers: { activitybar: [{ id: name, icon }] } } } });
+  const { provider, view, messages, send } = setup({ extensions: [mk('p.good', 'good', 'ok.svg'), mk('p.evil', 'evil', 'bad.svg'), mk('p.none', 'none', 'missing.svg')] });
+  await provider.resolveWebviewView(view);
+  await send({ type: 'ready' });
+  const data = messages.at(-1);
+  const good = data.unassigned.find(e => e.container === 'good'), evil = data.unassigned.find(e => e.container === 'evil');
+  assert.ok(good.iconKey && data.icons[good.iconKey].kind === 'svg');
+  assert.equal(evil.iconKey, undefined, 'rejected SVG: generic icon');
+  assert.ok(!JSON.stringify(data.icons).match(/script|alert|onload/));
+  assert.equal(Object.keys(data.icons).length, 1);
+});
+
+test('tray: workbench and own containers are not listed', async () => {
+  const ext = { id: 'p.x', packageJSON: { name: 'x', contributes: { views: { explorer: [{ name: 'E' }], scm: [{ name: 'S' }], groupedTools: [{ name: 'T' }], 'groupedTools.pin.cloud': [{ name: 'P' }], mine: [{ name: 'M' }] } } } };
+  const { provider, view, messages, send } = setup({ extensions: [ext] });
+  await provider.resolveWebviewView(view);
+  await send({ type: 'ready' });
+  assert.deepEqual(messages.at(-1).extensions.map(e => e.container), ['mine']);
 });

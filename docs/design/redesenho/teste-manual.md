@@ -40,3 +40,12 @@ Foco visível em todos os controles, navegação por Tab, leitor de tela (NVDA) 
 
 ## Nota sobre o atalho
 O atalho vive como keybinding da extensão (`focusedView == groupedTools.view`). Se o VS Code não o entregar com o foco dentro do webview, a alternativa é tratar a tecla também no webview e remover o keybinding para não alternar duas vezes.
+
+## Rodada 4 (feedback F5)
+1. Primeira ativação (limpe globalState): o painel abre e aparece o aviso com "Entendi"; reabrir o VS Code não repete.
+2. O ícone do contêiner Ferramentas é o conjunto de blocos do protótipo (não a grade de 4 quadrados), em tema claro e escuro.
+3. Bandeja "Não agrupadas": ícones originais das extensões instaladas (SVG do contêiner ou PNG), genérico quando não há; uma linha por extensão; extensão com vários painéis mostra "N painéis" e pergunta o painel em "Adicionar a…". Confirme que nenhum ícone quebra o layout nos temas claro, escuro e alto contraste.
+4. Bandeja visível sem entrar em Organizar, recolhe e lembra o estado ao reabrir. Explorer/Controle de código/Depurar não aparecem nela.
+5. Marque "Lembrar de ocultar o ícone ao adicionar", adicione uma extensão a um grupo: o aviso traz o passo e "Copiar passo". Faça o passo (botão direito no ícone > Ocultar) e confirme que funciona.
+6. Fixar grupo: item da barra de status e ícone da barra de atividades aparecem; desafixar remove os dois.
+7. Painéis hostis: não há como testar sem uma extensão com SVG malicioso; os testes automáticos cobrem script, on*, foreignObject, href externo e traversal.
