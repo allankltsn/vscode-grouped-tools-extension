@@ -45,7 +45,17 @@ O posicionamento e os controles para recolher a barra são administrados pelo VS
 - **Ícones:** o seletor busca entre todos os ícones Lucide (nome, tags, palavras em português como banco, nuvem, pasta) e mostra 60 por vez.
 - **Não agrupadas:** extensões instaladas com painel que ainda não estão em nenhum grupo; arraste ou use Adicionar a…. Comandos livres entram por ⋯ > Adicionar item… > Comando do VS Code.
 - **Salvar:** automático a cada gesto, com aviso Desfazer por 8 s (Ctrl+Z também). Erros mantêm o rascunho na tela, com Tentar de novo ou Descartar.
-- **Escopo:** Global (padrão) vale para todos os projetos; Este projeto grava no workspace e prevalece; a primeira edição copia a global. Configuração por pasta deixa o painel somente leitura. Edições avançadas (argumentos de comando) ficam no Settings (groupedTools.groups).
+- **Escopo:** Global (padrão) vale para todos os projetos; Este projeto grava no workspace e prevalece; a primeira edição copia a global. Em pasta não confiável (Workspace Trust) só vale o Global e "Este projeto" fica indisponível. Edições avançadas (argumentos de comando) ficam no Settings (groupedTools.groups).
+
+## Segurança
+
+- **Itens do projeto:** a configuração do projeto (.vscode/settings.json) pode vir de um repositório de terceiros. No escopo "Este projeto", um item com argumentos, ou com comando fora de workbench.view.* e workbench.action.*, pede confirmação modal mostrando o comando e os argumentos antes da primeira execução (lembrada por item no workspaceState). Itens do Global não pedem. O comando do item aparece no title do botão.
+- **Pasta não confiável:** a extensão declara suporte limitado (untrustedWorkspaces, restrictedConfigurations groupedTools.groups) e lê/grava só o valor Global enquanto a pasta não for confiável.
+- **Comandos bloqueados como item:** groupedTools.run, runById, openGroup e manageGroup. O comando groupedTools.run não existe mais.
+- **Limites da configuração:** até 100 grupos, nomes de até 100 caracteres, comando de até 200; caracteres de controle e bidi são removidos dos nomes. Erros de salvamento dizem qual grupo ou item corrigir.
+- **Ids:** o id de um grupo sem `id` na configuração é derivado do nome (grp-<hash do nome>); renomear um grupo escrito à mão (sem id) muda o id até o painel gravá-lo. O id de item deriva de comando, nome e argumentos.
+- **Ícones:** media/icons.js e media/pin/*.svg só podem conter tags e atributos da lista em scripts/svg-allowlist.js; o gerador e um teste falham se aparecer outra coisa.
+- **Contraste:** `node scripts/contrast.js` mede a paleta (barra 3:1, texto 4.5:1) em Light+ e Dark+.
 
 ## Grupos fixados
 

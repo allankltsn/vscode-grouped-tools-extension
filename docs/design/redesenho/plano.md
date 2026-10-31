@@ -31,11 +31,21 @@ Autor: frontend-senior. Branch `feature/redesenho-painel`. Referência: `ux.md` 
 ## Contrato de dados final
 Configuração `groupedTools.groups[]`: `id?` (`[A-Za-z0-9_-]{1,64}`), `name` (<=100), `icon`, `color?` (`g-1`..`g-10`), `pinned?` (boolean; só Global; ícone no catálogo; um por ícone), `items[]`: `name`, `command`, `icon?`, `args?`, `extensionId?`.
 
-`data` (extensão para webview): `groups[]` (`id,name,icon,color,pinned?,items[]`), item `{id,name,command,icon,favorite,kind,extensionId?,installed,args?}`, `unassigned[]`, `extensions[]`, `scope{active,hasWorkspace,projectOverride,folderOverride,readOnly}`, `pins[]` (`{groupId,icon,name}`, sempre do Global), `stats`, `workspace`, `hasWorkspace`.
+`data` (extensão para webview): `groups[]` (`id,name,icon,color,pinned?,items[]`), item `{id,name,command,icon,favorite,kind,extensionId?,installed,args?}`, `unassigned[]`, `extensions[]`, `scope{active,hasWorkspace,trusted,projectOverride}`, `pins[]` (`{groupId,icon,name}`, sempre do Global), `stats`, `workspace`, `hasWorkspace`.
 
 Webview para extensão: `ready{scope}`, `setScope`, `saveGroups{scope,groups,op}`, `undo{scope,groups,op}`, `resetGroups{scope}`, `useSuggested{scope}`, `run{id}`, `favorite{id}`, `openMarketplace{extensionId}`, `configure`, `focusAck{seq}`.
 
-Extensão para webview: `data`, `saved`, `saveError{reason}`, `focusGroup{seq,groupId?,collapseOthers,organize?,missing?}`, `toggleFold`, `openEditor`.
+Extensão para webview: `data`, `saved`, `saveError{reason}`, `focusGroup{seq,groupId?,collapseOthers,organize?,missing?}`, `restoreFold{seq}`, `toggleFold` (sem ack), `openEditor`.
+
+## Decisões da rodada de revisão
+- **Somente leitura removido:** `groupedTools.groups` é `scope: "window"`; o VS Code não guarda valor por pasta (`workspaceFolderValue`) para esse escopo, então o ramo folderOverride/readOnly era código morto e foi removido (extensão, painel e testes). O que existe de verdade é Workspace Trust: sem confiança, só o Global.
+- **Restauração do recolhimento (UX-18):** a view principal, ao ficar visível sem navegação em curso (flag `navigating`, 1,5 s após openGroup/openEditor), recebe `restoreFold` pelo mesmo canal com ack dos demais comandos de navegação.
+- **Máquina de salvar:** fila por escopo, um salvamento em voo e merge de `data` em media/sync.js (puro, testado), incluindo a corrida salvar/trocar de escopo que antes descartava a edição pendente.
+- **Ids derivados do nome (REV-5):** ver README, seção Segurança. É deliberado: a configuração escrita à mão continua válida sem `id`.
+- **Termo:** neste plano "item" é cada entrada de um grupo; "atalho" aparece só em textos antigos da v1.
+
+## Dívida técnica
+- **REV-4:** media/view.js tem cerca de 1100 linhas (render, DnD, teclado, seletor de ícones, menus). Dividir em módulos (render, dnd, picker, menus) depois de validar no VS Code real; a extração de model.js e sync.js foi o primeiro passo.
 
 ## Riscos
 - **Não verificável sem VS Code:** renderização real, DnD HTML5 no webview, contêineres ocultos (UX-19), tooltip com imagem e foco (UX-25), excedente da barra de status (UX-26), atalho Alt+Shift+C em webview. Roteiro em `teste-manual.md`.
