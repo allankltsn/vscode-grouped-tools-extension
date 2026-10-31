@@ -92,21 +92,16 @@ test('provider: data, favorites, command whitelist and configuration refresh', a
   assert.ok(view.webview.html.includes("default-src 'none'"));
   await send({ type: 'ready' });
   const first = messages.at(-1).groups[0].items[0];
-  const variados = messages.at(-1).groups.find(g => g.name === 'Variados');
-  assert.equal(variados.icon, 'plus');
-  assert.equal(variados.items.length, 2);
-  for (const item of variados.items) await send({ type: 'run', id: item.id });
-  assert.deepEqual(calls.splice(0), [
-    ['workbench.view.extension.vscode-spotify'],
-    ['workbench.view.extension.clickup-kanban-sidebar-view']
-  ]);
+  assert.deepEqual(messages.at(-1).groups.map(g => g.name), ['Qualidade e testes'], 'the only default group');
+  assert.equal(messages.at(-1).groups[0].color, 'g-7', 'g-7 is Verde');
+  assert.equal(messages.at(-1).groups[0].items.length, 2);
   assert.equal(first.favorite, false);
   await send({ type: 'favorite', id: first.id });
   assert.equal(messages.at(-1).groups[0].items[0].favorite, true);
   await send({ type: 'run', id: 'invented', command: 'untrusted' });
   assert.equal(calls.length, 0);
   await send({ type: 'run', id: first.id });
-  assert.equal(calls[0][0], 'workbench.view.extension.claude-sidebar');
+  assert.equal(calls[0][0], 'workbench.actions.view.problems');
   await send({ type: 'favorite', id: first.id });
   assert.equal(messages.at(-1).groups[0].items[0].favorite, false);
   groups[0].name = 'Updated'; handlers.config[0]({ affectsConfiguration: () => true });

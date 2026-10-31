@@ -11,7 +11,7 @@ Preparação: abrir a pasta no VS Code, F5 (Extension Development Host). Abra um
 4. Renomear (duplo clique), nome vazio mostra erro; Desfazer pelo toast e por Ctrl+Z; salvar visível em Settings (groupedTools.groups) com ids e color.
 5. Recolher todos pelo botão e por **Alt+Shift+C** com o painel em foco (confirmar que alterna uma vez só; se não funcionar, ver nota abaixo).
 6. Escopo Este projeto: primeira edição avisa e copia o global; Voltar ao global; em pasta não confiável (Restricted Mode) "Este projeto" fica indisponível e só o Global aparece.
-7. Primeira vez (configuração vazia): cartão de boas-vindas, "Criar grupos sugeridos".
+7. Primeira vez (configuração vazia): cartão de boas-vindas, "Criar o grupo sugerido" (Qualidade e testes).
 
 ## A2. Segurança (SEC-1, SEC-2)
 1. Abrir uma pasta cujo .vscode/settings.json define groupedTools.groups com um item de args (por exemplo workbench.action.terminal.sendSequence) e um item "workbench.view.explorer": no escopo Este projeto, o primeiro pede confirmação modal com comando e argumentos; o segundo abre direto. Depois de "Executar e lembrar" não pergunta de novo. No Global nunca pergunta.

@@ -280,9 +280,9 @@
     if (S.notice) h += `<div class="infobar" role="status">${ic('info', 'sm')}<span class="txt">${esc(S.notice)}</span><button type="button" class="btn" data-act="dismiss-notice" data-fid="nt">Entendi</button></div>`;
     if (noG) {
       if (!S.welcomeDone) {
-        h += `<section class="empty-state" aria-labelledby="wt">${illustration()}<h2 id="wt">Organize suas extensões em grupos.</h2><p>Crie grupos por assunto e chegue a cada ferramenta em um clique.</p><div class="acts"><button type="button" class="btn primary" data-act="suggest" data-fid="sg">Criar grupos sugeridos</button><button type="button" class="btn" data-act="zero">Começar do zero</button></div></section>${tipsHTML(false)}`;
+        h += `<section class="empty-state" aria-labelledby="wt">${illustration()}<h2 id="wt">Organize suas extensões em grupos.</h2><p>Crie grupos por assunto (sugestão: Qualidade e testes) e chegue a cada ferramenta em um clique.</p><div class="acts"><button type="button" class="btn primary" data-act="suggest" data-fid="sg">Criar o grupo sugerido</button><button type="button" class="btn" data-act="zero">Começar do zero</button></div></section>${tipsHTML(false)}`;
       } else {
-        h += `<section class="empty-state" aria-labelledby="wt">${illustration()}<h2 id="wt">Nenhum grupo ainda</h2><p>Comece com um grupo vazio e arraste extensões para ele.</p><div class="acts"><button type="button" class="btn primary" data-act="newgroup" data-fid="cf">Criar primeiro grupo</button><button type="button" class="btn link" data-act="suggest">Usar grupos sugeridos</button></div></section>`;
+        h += `<section class="empty-state" aria-labelledby="wt">${illustration()}<h2 id="wt">Nenhum grupo ainda</h2><p>Comece com um grupo vazio e arraste extensões para ele.</p><div class="acts"><button type="button" class="btn primary" data-act="newgroup" data-fid="cf">Criar primeiro grupo</button><button type="button" class="btn link" data-act="suggest">Usar o grupo sugerido</button></div></section>`;
       }
       return h + zoneHTML() + trayHTML(un, '', true);
     }
@@ -738,7 +738,7 @@
   function suggest() {
     sync.draft = false;
     api.postMessage({ type: 'useSuggested', scope: activeScope(), op: 'Grupos sugeridos' });
-    S.welcomeDone = true; setSave('saving'); announce('Criando os grupos sugeridos.');
+    S.welcomeDone = true; setSave('saving'); announce('Criando o grupo sugerido: Qualidade e testes.');
   }
   function finishEdit(mode) {
     const ed = S.edit; if (!ed) return;

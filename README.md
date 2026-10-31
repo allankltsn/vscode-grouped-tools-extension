@@ -92,21 +92,6 @@ Agrupa atalhos; não move as interfaces originais das extensões (os ícones ori
 
 ## Grupos padrão
 
-Os padrões agrupam por tema os painéis que normalmente ocupam a Activity Bar. Cada atalho abre o painel original (workbench.view.extension.<id do contêiner>) e só funciona se a extensão estiver instalada.
+O único grupo padrão é **Qualidade e testes** (cor Verde, classe g-7 da paleta g-1..g-10) com Problemas e Testes. Os demais grupos você cria no painel (ou em groupedTools.groups). O cartão de primeira vez oferece "Criar o grupo sugerido" (esse mesmo grupo) ou "Começar do zero". Os atalhos de extensões abrem o painel original (workbench.view.extension.<id do contêiner>) e só funcionam com a extensão instalada.
 
-| Grupo | Atalhos |
-| --- | --- |
-| Claude e IA | Claude Code (sidebar e sessões), Claude Code Chat, Claude Control, Claude Lens, Claude Code Graph, Codex, CodeCursor, Tabnine |
-| Git e GitHub | Controle de código-fonte, GitLens, Pull requests e issues, GitHub Actions, Git Graph |
-| Bancos de dados | Database Client, PostgreSQL, Prisma |
-| Containers e remoto | Docker, Explorador remoto, terminal, tarefas |
-| Diagramas e planejamento | Diagram Forge, Archify, Kanban Markdown |
-| Linguagens e notebooks | Python, Jupyter, PowerShell, Makefile, corretor ortográfico |
-| Qualidade e testes | Problemas, Testes |
-| Variados | Spotify, ClickUp |
-
-## Grupo Variados
-
-Ícone plus e atalhos Spotify e ClickUp. Os atalhos abrem os painéis originais das extensões shyykoserhiy.vscode-spotify e mcdev.clickup-kanban, que precisam estar instaladas. Não há substituição de grupos neste workspace por padrão. Configurações personalizadas em outros workspaces prevalecem sobre os padrões.
-
-Ícones de grupos e itens também aceitam plus, music e kanban.
+Ícones de grupos e itens aceitam qualquer nome do Lucide (ex.: plus, music, kanban).
