@@ -5,6 +5,16 @@ const { PinManager, PinRedirect } = require('./pins');
 const { createCommandApi } = require('./commands');
 const catalog = require('../media/pin-catalog');
 
+// The VS Code API cannot choose where a view container lands in the Activity Bar (new ones go to the end), so the
+// first activation opens the panel once and says where it is.
+async function welcome(context) {
+  const state = context.globalState;
+  if (!state || state.get('welcomed')) return;
+  await state.update('welcomed', true); // before anything else: at most once, even if the next steps fail
+  await vscode.commands.executeCommand('workbench.view.extension.groupedTools');
+  vscode.window.showInformationMessage('Ferramentas está na barra de atividades. Arraste o ícone para onde quiser.', 'Entendi');
+}
+
 function activate(context) {
   const commandApi = createCommandApi(vscode);
   const provider = new ToolsView(context, commandApi);
@@ -27,6 +37,7 @@ function activate(context) {
   );
   pins.update();
   provider.migrateState().catch(() => {});
+  welcome(context).catch(() => {});
 }
 
 function deactivate() {}

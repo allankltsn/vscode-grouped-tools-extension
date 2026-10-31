@@ -16,6 +16,7 @@ function load(vscode) {
 }
 
 function setup(overrides = {}) {
+  const gstore = overrides.firstRun ? {} : { welcomed: true }, infos = [];
   const store = {}, calls = [], updates = [], messages = [], contexts = [];
   const handlers = { config: [], extensions: [], editor: [], folders: [], trust: [] };
   const warnings = [];
@@ -51,6 +52,7 @@ function setup(overrides = {}) {
       registerWebviewViewProvider: (id, p) => (providers.set(id, p), mk()),
       onDidChangeActiveTextEditor: f => (handlers.editor.push(f), disposable),
       showErrorMessage: async m => calls.push(m),
+      showInformationMessage: async (...a) => { infos.push(a); },
       showWarningMessage: async (...args) => { warnings.push(args); return overrides.warningAnswer; },
       createStatusBarItem: (id, alignment, priority) => {
         const item = { id, alignment, priority, shown: false, show() { item.shown = true; }, dispose() { item.disposed = true; } };
@@ -62,7 +64,8 @@ function setup(overrides = {}) {
       executeCommand: async (...args) => { if (args[0] === 'setContext') contexts.push(args.slice(1)); else calls.push(args); }
     }
   };
-  const context = { extensionUri: { fsPath: root }, subscriptions: [], workspaceState: { get: (k, d) => store[k] || d, update: async (k, v) => { store[k] = v; } } };
+  const context = { extensionUri: { fsPath: root }, subscriptions: [], workspaceState: { get: (k, d) => store[k] || d, update: async (k, v) => { store[k] = v; } },
+    globalState: { get: (k, d) => gstore[k] ?? d, update: async (k, v) => { gstore[k] = v; } } };
   load(vscode).activate(context);
   const provider = providers.get('groupedTools.view');
   let onMessage, onDispose, onVisible;
@@ -72,7 +75,7 @@ function setup(overrides = {}) {
     onDidChangeVisibility: f => (onVisible = f, disposable),
     onDidDispose: f => { onDispose = f; return disposable; }
   };
-  return { vscode, provider, providers, commandHandlers, statusItems, contexts, view, groups, config, calls, updates, messages, handlers, reads, context, created, inspected,
+  return { gstore, infos, vscode, provider, providers, commandHandlers, statusItems, contexts, view, groups, config, calls, updates, messages, handlers, reads, context, created, inspected,
     warnings, send: m => onMessage(m), dispose: () => onDispose(), show: () => onVisible() };
 }
 
@@ -693,4 +696,16 @@ test('SEC-18: the favorites cap keeps the newest, also when favoriting and on mi
   assert.equal(fav.length, 500);
   assert.equal(fav.at(-1), favoriteHash(item));
   assert.ok(!fav.includes(old[0]));
+});
+
+test('first activation: opens the panel once and tells where the icon is (position is not controllable)', async () => {
+  const first = setup({ firstRun: true });
+  await new Promise(r => setImmediate(r));
+  assert.deepEqual(first.calls.filter(c => c[0] === 'workbench.view.extension.groupedTools'), [['workbench.view.extension.groupedTools']]);
+  assert.deepEqual(first.infos, [['Ferramentas está na barra de atividades. Arraste o ícone para onde quiser.', 'Entendi']]);
+  assert.equal(first.gstore.welcomed, true);
+  const again = setup(); // flag already set: silent
+  await new Promise(r => setImmediate(r));
+  assert.equal(again.calls.filter(c => c[0] === 'workbench.view.extension.groupedTools').length, 0);
+  assert.equal(again.infos.length, 0);
 });

@@ -120,3 +120,14 @@ test('tooltipSource: empty group, exactly 15 rows without the "Ver todas" line',
   assert.ok(!md.includes('Ver todas'));
   assert.equal((md.match(/^\| \$\(terminal\)/gm) || []).length, 15);
 });
+
+test('tools.svg: same Lucide icon as the prototype (blocks), generated, allowlisted', () => {
+  const generated = build();
+  const { checkBody } = require('../scripts/svg-allowlist');
+  assert.equal(fs.readFileSync(path.join(root, 'media', 'tools.svg'), 'utf8'), generated.tools);
+  assert.equal(generated.tools, build().tools);
+  assert.ok(generated.tools.includes(icons().toolIcons.blocks));
+  assert.deepEqual(checkBody(icons().toolIcons.blocks), []);
+  assert.match(fs.readFileSync(path.join(root, 'docs', 'design', 'redesenho', 'prototipo', 'prototipo.js'), 'utf8'), /ic\('blocks'\), 'Ferramentas agrupadas'/);
+  assert.equal(pkg.contributes.viewsContainers.activitybar[0].icon, 'media/tools.svg');
+});

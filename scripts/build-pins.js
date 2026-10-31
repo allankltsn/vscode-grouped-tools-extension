@@ -9,6 +9,7 @@ const catalog = require('../media/pin-catalog');
 
 const root = path.join(__dirname, '..');
 const MAIN_CONTAINER = 'groupedTools';
+const TOOLS_ICON = 'blocks';
 
 function loadIcons() {
   const sandbox = { window: {} };
@@ -29,7 +30,9 @@ function build(icons = loadIcons()) {
     containers.push({ id: catalog.containerId(icon), title, icon: `media/pin/${icon}.svg` });
     views.push([catalog.containerId(icon), [{ id: catalog.viewId(icon), name: title, type: 'webview', when: catalog.contextKey(icon) }]]);
   }
-  return { svgs, containers, views };
+  // Main container icon: the same Lucide icon the approved prototype uses for Ferramentas in the Activity Bar.
+  if (!icons[TOOLS_ICON]) throw new Error(`Ícone ausente em media/icons.js: ${TOOLS_ICON}`);
+  return { svgs, containers, views, tools: svg(icons[TOOLS_ICON]) };
 }
 
 // Applies the generated sections to a parsed package.json, keeping every other entry untouched.
@@ -60,6 +63,8 @@ function main() {
     const target = path.join(dir, file);
     if (!fs.existsSync(target) || fs.readFileSync(target, 'utf8') !== text) stale.push(`media/pin/${file}`);
   }
+  const toolsFile = path.join(root, 'media', 'tools.svg');
+  if (!fs.existsSync(toolsFile) || fs.readFileSync(toolsFile, 'utf8') !== generated.tools) stale.push('media/tools.svg');
   const extra = fs.existsSync(dir) ? fs.readdirSync(dir).filter(f => !(f in generated.svgs)) : [];
   for (const f of extra) stale.push(`media/pin/${f} (fora do catálogo)`);
   if (check) {
@@ -70,6 +75,7 @@ function main() {
   fs.mkdirSync(dir, { recursive: true });
   for (const f of extra) fs.unlinkSync(path.join(dir, f));
   for (const [file, text] of Object.entries(generated.svgs)) fs.writeFileSync(path.join(dir, file), text);
+  fs.writeFileSync(toolsFile, generated.tools);
   fs.writeFileSync(pkgFile, nextText);
   console.log(`${catalog.PIN_ICONS.length} contêineres, ${stale.length} arquivos atualizados.`);
 }
