@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Protótipo - Ferramentas agrupadas (painel redesenhado)</title>
+<link rel="stylesheet" href="prototipo.css">
+</head>
+<body class="vscode-dark">
+
+<header class="pv-head">
+  <h1>Ferramentas agrupadas - protótipo do painel redesenhado</h1>
+  <p>Protótipo para validação, não aprovado. Nada é salvo de verdade: os dados são de exemplo e voltam ao original ao recarregar. Use os controles à esquerda para mudar tema, largura e estado; use o painel simulado à direita como na barra lateral do VS Code.</p>
+</header>
+
+<div class="pv-stage">
+  <aside class="pv-ctl" aria-label="Controles do protótipo (não fazem parte do painel)">
+    <fieldset>
+      <legend>Tema</legend>
+      <div class="pv-seg" role="radiogroup" aria-label="Tema">
+        <label><input type="radio" name="theme" value="dark" checked><span>Escuro</span></label>
+        <label><input type="radio" name="theme" value="light"><span>Claro</span></label>
+        <label><input type="radio" name="theme" value="hc"><span>Alto contraste</span></label>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Largura da barra lateral</legend>
+      <div class="pv-range">
+        <input id="pvW" type="range" min="220" max="420" step="2" value="320" aria-label="Largura da barra lateral em pixels">
+        <output id="pvWo" for="pvW">320 px</output>
+      </div>
+      <div class="pv-seg">
+        <button type="button" data-w="220">220</button>
+        <button type="button" data-w="300">300</button>
+        <button type="button" data-w="420">420</button>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Dados de exemplo</legend>
+      <div class="pv-seg" role="radiogroup" aria-label="Estado dos dados">
+        <label><input type="radio" name="data" value="full" checked><span>Cheio</span></label>
+        <label><input type="radio" name="data" value="empty"><span>Vazio</span></label>
+        <label><input type="radio" name="data" value="first"><span>Primeira vez</span></label>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Grupos fixados na Activity Bar</legend>
+      <div class="pv-seg" role="radiogroup" aria-label="Quantidade de grupos fixados">
+        <label><input type="radio" name="slots" value="0"><span>0</span></label>
+        <label><input type="radio" name="slots" value="3" checked><span>3</span></label>
+        <label><input type="radio" name="slots" value="12"><span>Muitos (12)</span></label>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Simulações</legend>
+      <label class="pv-chk"><input type="checkbox" id="pvErr"><span>Falha ao salvar (próxima alteração)</span></label>
+      <label class="pv-chk"><input type="checkbox" id="pvNoWs"><span>Sem pasta aberta (desabilita "Este projeto")</span></label>
+      <label class="pv-chk"><input type="checkbox" id="pvMiss"><span>Em "Este projeto", o 1º grupo fixado não existe (clique no ícone dele)</span></label>
+      <label class="pv-chk"><input type="checkbox" id="pvRo"><span>Configuração por pasta (somente leitura)</span></label>
+      <label class="pv-chk"><input type="checkbox" id="pvRm"><span>Reduzir movimento</span></label>
+      <div class="pv-seg">
+        <button type="button" id="pvLoad">Mostrar carregando</button>
+        <button type="button" id="pvReset">Restaurar protótipo</button>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Anúncios (região aria-live)</legend>
+      <ul class="pv-log" id="pvLog" aria-label="Últimos anúncios do leitor de tela"><li>Nenhum anúncio ainda.</li></ul>
+    </fieldset>
+    <fieldset>
+      <legend>Atalhos (modo Organizar)</legend>
+      <ul class="pv-help">
+        <li><kbd>Espaço</kbd> na alça ou no item: pega; setas movem; <kbd>←</kbd><kbd>→</kbd> trocam de grupo; <kbd>Espaço</kbd> solta; <kbd>Esc</kbd> devolve.</li>
+        <li><kbd>Alt</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd>: move um passo sem pegar.</li>
+        <li><kbd>Ctrl</kbd>+<kbd>Z</kbd>: desfaz a última alteração.</li>
+        <li>Barra de status: <kbd>Tab</kbd> até um item fixado abre o card (como o tooltip nativo no foco); <kbd>Esc</kbd> fecha; <kbd>Enter</kbd> abre o grupo.</li>
+        <li><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd>: recolhe ou expande todos os grupos.</li>
+        <li>Duplo clique no nome do grupo: renomear.</li>
+      </ul>
+    </fieldset>
+  </aside>
+
+  <div class="pv-wrap">
+    <div class="vsc-frame" id="vscFrame">
+    <div class="vsc" id="vsc">
+      <nav class="vsc-act" id="vscAct" aria-label="Barra de atividades simulada (nativa do VS Code)"></nav>
+      <section class="vsc-side" id="vscSide" aria-label="Barra lateral simulada do VS Code">
+        <div class="vsc-side-t"><span id="vscTitle">Ferramentas agrupadas</span><span data-ic="ellipsis" aria-hidden="true"></span></div>
+        <div class="vsc-ph" id="vscPh" role="note">Vista nativa simulada. Clique no ícone Ferramentas (ou num ícone fixado) para voltar ao painel.</div>
+
+        <main class="app" id="app" aria-label="Ferramentas agrupadas">
+          <header class="top">
+            <div class="row">
+              <div class="search">
+                <span class="s-ic" data-ic="search" data-icsm="1" aria-hidden="true"></span>
+                <input id="q" type="search" placeholder="Buscar ferramenta…" aria-label="Buscar ferramenta" autocomplete="off" spellcheck="false">
+                <button type="button" class="clear" id="qClear" aria-label="Limpar busca" hidden data-ic="x" data-icsm="1"></button>
+              </div>
+              <button type="button" class="btn-org btn-fold" id="btnFold" data-fid="fold"></button>
+              <button type="button" class="btn-org" id="btnOrg" aria-pressed="false" data-fid="org"></button>
+            </div>
+            <div class="row">
+              <div class="seg" role="group" aria-label="Filtro">
+                <button type="button" id="segAll" aria-pressed="true">Todas</button>
+                <button type="button" id="segFav" aria-pressed="false">Favoritos</button>
+              </div>
+              <button type="button" class="pill-btn" id="btnScope" aria-haspopup="menu" data-fid="scope"></button>
+            </div>
+          </header>
+
+          <div class="scroll" id="scroll" aria-live="off"></div>
+
+          <footer class="foot" id="foot"></footer>
+
+          <div class="overlay" id="overlay"></div>
+          <div class="sr" id="live" aria-live="polite" aria-atomic="true"></div>
+          <p class="sr" id="kbhelp">Em modo Organizar: Espaço pega o item; setas movem; setas para os lados trocam de grupo; Espaço solta; Esc cancela. Alt mais seta move um passo.</p>
+        </main>
+      </section>
+      <div class="vsc-editor" aria-hidden="true"><i style="width:180px"></i><i style="width:140px"></i><i style="width:200px"></i></div>
+    </div>
+    <footer class="sbar" id="sbar" aria-label="Barra de status simulada (nativa do VS Code)"></footer>
+    <div class="sb-hover" id="sbHover" hidden></div>
+    </div>
+  </div>
+</div>
+
+<script src="icons-subset.js"></script>
+<script src="prototipo.js"></script>
+</body>
+</html>
