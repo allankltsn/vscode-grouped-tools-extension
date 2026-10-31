@@ -59,6 +59,17 @@ Extensão para webview: `data`, `saved`, `saveError{reason}`, `focusGroup{seq,gr
 | REV-11 | Corrigido: ux.md atualizado (escopo window, Workspace Trust). |
 | REV-13, QA-11, QA-5/6 cosmético | Ressalva registrada, sem código: ainda dependem de verificação no VS Code real (layout em 220 px, navegação por setas em Recentes). |
 
+## Terceira rodada (achados baixos de segurança, QA e revisão)
+| ID | Disposição |
+|---|---|
+| SEC-13 | Corrigido: sequências de 4 ou mais espaços/tabs aparecem como barra-invertida, u e o código entre chaves (exemplo: u{E0041}). |
+| SEC-14 | Corrigido: na ativação, approvedItems perde o que não começa com "h:"; favoritos ficam limitados a 500; favoritos legados em texto puro viram hash quando o item existe na configuração atual (Global, projeto ou pasta), os demais são descartados. |
+| SEC-15 | Corrigido: toggleStatusbarVisibility e toggleActivityBarVisibility saíram de SAFE_ACTIONS (gravam em settings.json). As 12 restantes alternam estado de interface sem gravar configurações do usuário (revisadas). |
+| SEC-16 | Corrigido: caracteres acima de U+FFFF aparecem como barra-invertida, u e o código entre chaves (exemplo: u{E0041}). |
+| SEC-10 (limitação) | Aceito, sem código: no Global, runCommands e qualquer comando não pedem confirmação, porque a configuração Global é do próprio usuário. Quem copiar uma configuração de terceiros para o Global assume o risco. Documentado no README. |
+| QA-12, QA-13, REV-15, REV-17, REV-18 | Aceitos como estão (sem código). |
+| REV-16 | Aceito: aprovações antigas gravadas em texto puro deixam de valer e pedem confirmação mais uma vez; nota no README. |
+
 ## Dívida técnica
 - **REV-4:** media/view.js tem cerca de 1100 linhas (render, DnD, teclado, seletor de ícones, menus). Dividir em módulos (render, dnd, picker, menus) depois de validar no VS Code real; a extração de model.js e sync.js foi o primeiro passo.
 

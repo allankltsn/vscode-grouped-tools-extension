@@ -17,6 +17,7 @@ Preparação: abrir a pasta no VS Code, F5 (Extension Development Host). Abra um
 1. Abrir uma pasta cujo .vscode/settings.json define groupedTools.groups com um item de args (por exemplo workbench.action.terminal.sendSequence) e um item "workbench.view.explorer": no escopo Este projeto, o primeiro pede confirmação modal com comando e argumentos; o segundo abre direto. Depois de "Executar e lembrar" não pergunta de novo. No Global nunca pergunta.
 2. Abrir a mesma pasta em Restricted Mode: o painel mostra só o Global, "Este projeto" está desabilitado, salvar no projeto não é possível; ao confiar na pasta o painel atualiza sozinho.
 3. Item com título (hover do botão) mostrando o comando.
+4. SEC-13/15: no projeto, um item workbench.action.toggleStatusbarVisibility pede confirmação; um item com centenas de espaços antes do payload mostra ␠×N no modal e só oferece Executar uma vez.
 
 ## B. Fixar grupos (UX-19, UX-20)
 1. ⋯ > Fixar na barra de atividades num grupo com ícone do catálogo (ex.: database): o ícone igual ao do grupo aparece na barra de atividades. Conferir o título no hover: "Ferramentas · Banco de dados".

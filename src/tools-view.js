@@ -14,6 +14,7 @@ const NAVIGATION_MS = 5000;
 const NAVIGATION_GRACE_MS = 400;
 const ARGS_PREVIEW = 1500;
 const MAX_APPROVED = 200;
+const MAX_FAVORITES = 500;
 // A project (workspace) item runs without asking only when it opens a view container (workbench.view.*) or is
 // one of these harmless workbench actions without arguments. Everything else (tasks, debug, terminal,
 // runCommands, other extensions' commands, anything with args) asks first.
@@ -21,12 +22,18 @@ const SAFE_VIEW_COMMAND = /^workbench\.view\.[A-Za-z0-9_.-]+$/;
 const SAFE_ACTIONS = new Set([
   'workbench.action.showCommands', 'workbench.action.quickOpen', 'workbench.action.openSettings', 'workbench.action.openSettings2',
   'workbench.action.toggleSidebarVisibility', 'workbench.action.togglePanel', 'workbench.action.toggleZenMode',
-  'workbench.action.toggleStatusbarVisibility', 'workbench.action.toggleActivityBarVisibility', 'workbench.action.toggleMaximizedPanel',
+  'workbench.action.toggleMaximizedPanel',
   'workbench.action.focusSideBar', 'workbench.action.focusPanel', 'workbench.action.focusActiveEditorGroup', 'workbench.action.showAllEditors'
 ]);
 const isSafeProjectCommand = command => SAFE_VIEW_COMMAND.test(command) || SAFE_ACTIONS.has(command);
 // Hidden characters are shown as an escape sequence so the modal text cannot be disguised.
-const visible = text => String(text).replace(HIDDEN, ch => `\\u${ch.codePointAt(0).toString(16).toUpperCase().padStart(4, '0')}`);
+const visible = text => String(text).replace(HIDDEN, ch => {
+  const cp = ch.codePointAt(0), hex = cp.toString(16).toUpperCase();
+  return cp > 0xFFFF ? `\\u{${hex}}` : `\\u${hex.padStart(4, '0')}`;
+});
+// Long runs of blanks would push the payload out of sight in the modal: show them as a counter.
+const collapseBlanks = text => text.replace(/(?: |\\t){4,}/g, run => `␠×${run.replace(/\\t/g, '\t').length}`);
+const mostlyBlank = text => text.length > 100 && (text.match(/ |\\t/g) || []).length > text.length / 2;
 const GROUP_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
 function listViewExtensions() {
@@ -227,9 +234,10 @@ class ToolsView {
     const approved = this.context.workspaceState.get('approvedItems', []);
     if (approved.includes(key)) return true;
     const hasArgs = Array.isArray(item.args) && item.args.length > 0;
-    const fullArgs = hasArgs ? visible(JSON.stringify(item.args)) : '';
-    const truncated = fullArgs.length > ARGS_PREVIEW;
-    const args = !hasArgs ? 'nenhum' : truncated ? `${fullArgs.slice(0, ARGS_PREVIEW)} … (truncado, ${fullArgs.length} caracteres no total)` : fullArgs;
+    const rawArgs = hasArgs ? visible(JSON.stringify(item.args)) : '';
+    const fullArgs = collapseBlanks(rawArgs);
+    const truncated = fullArgs.length > ARGS_PREVIEW || mostlyBlank(rawArgs);
+    const args = !hasArgs ? 'nenhum' : truncated ? `${fullArgs.slice(0, ARGS_PREVIEW)} … (truncado, ${rawArgs.length} caracteres no total)` : fullArgs;
     const remember = 'Executar e lembrar', once = 'Executar uma vez';
     const rule = truncated ? 'Os argumentos são longos demais para revisar: só dá para executar uma vez. ' : '';
     const answer = await vscode.window.showWarningMessage('A configuração deste projeto quer executar um comando.',
@@ -239,6 +247,26 @@ class ToolsView {
     if (answer !== remember || truncated) return false;
     await this.context.workspaceState.update('approvedItems', [key, ...approved].slice(0, MAX_APPROVED));
     return true;
+  }
+
+  // Activation: drop approvals that are not hashes, cap favorites, and convert legacy plain favorites to hashes
+  // when the item still exists in the current configuration (global or project); other legacy keys are dropped.
+  async migrateState() {
+    const state = this.context.workspaceState;
+    const inspected = this.inspectGroups();
+    const items = [inspected.globalValue ?? inspected.defaultValue, inspected.workspaceValue, inspected.workspaceFolderValue]
+      .flatMap(raw => readGroups(raw ?? []).flatMap(g => g.items));
+    const byPlain = new Map(items.map(i => [favoriteKey(i), favoriteHash(i)]));
+    const keep = [];
+    for (const key of state.get('favorites', [])) {
+      if (typeof key !== 'string') continue;
+      const hashed = key.startsWith('h:') ? key : byPlain.get(key);
+      if (hashed && !keep.includes(hashed)) keep.push(hashed);
+    }
+    const favorites = keep.slice(0, MAX_FAVORITES);
+    const approved = state.get('approvedItems', []).filter(k => typeof k === 'string' && k.startsWith('h:')).slice(0, MAX_APPROVED);
+    if (JSON.stringify(favorites) !== JSON.stringify(state.get('favorites', []))) await state.update('favorites', favorites);
+    if (JSON.stringify(approved) !== JSON.stringify(state.get('approvedItems', []))) await state.update('approvedItems', approved);
   }
 
   markNavigating(ms = this.navigationMs) {

@@ -26,6 +26,7 @@ function activate(context) {
     { dispose: () => pins.dispose() }
   );
   pins.update();
+  provider.migrateState().catch(() => {});
 }
 
 function deactivate() {}
