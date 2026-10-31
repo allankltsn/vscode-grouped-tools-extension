@@ -6,14 +6,17 @@ const MAX_GROUPS = 100;
 const MAX_NAME = 100;
 const MAX_ITEM_NAME = 100;
 const MAX_COMMAND = 200;
+const MAX_ARGS = 4096; // serialized size of an item's args
 // Commands of this extension that must never run as an item (recursion, or the hover-only entry points).
 const RECURSIVE_COMMAND = 'groupedTools.run';
 const BLOCKED_COMMANDS = [RECURSIVE_COMMAND, 'groupedTools.runById', 'groupedTools.openGroup', 'groupedTools.manageGroup'];
 const isBlockedCommand = command => BLOCKED_COMMANDS.includes(String(command).trim());
+// Control, soft-hyphen, zero-width, bidi and tag characters: removed from names, shown escaped in the modal.
+const HIDDEN = /[\u0000-\u001F\u007F-\u009F\u00AD\u061C\u180E\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF\u{E0000}-\u{E007F}]/gu;
 
 // Plain one-line text: whitespace collapsed, control, zero-width and bidi override characters removed.
 function cleanText(text) {
-  return String(text).replace(/\s+/g, ' ').replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]/g, '').trim();
+  return String(text).replace(/\s+/g, ' ').replace(HIDDEN, '').trim();
 }
 
 // Fixed palette (classes g-1..g-10 in media/view.css). Anything else falls back to neutral (slate).
@@ -24,6 +27,8 @@ const EXTENSION_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]*\.[A-Za-z0-9][A-Za-z0-9.
 const CONTAINER_PREFIX = 'workbench.view.extension.';
 
 function favoriteKey(item) { return JSON.stringify([item.command, item.name, item.args || []]); }
+// What is stored in workspaceState (favorites, approved items): a SHA-256 of the key, so args never sit there in clear.
+function favoriteHash(item) { return 'h:' + require('crypto').createHash('sha256').update(favoriteKey(item)).digest('hex'); }
 
 function hash(text) {
   let h = 0x811c9dc5;
@@ -52,11 +57,14 @@ function validExtensionId(id) { return typeof id === 'string' && EXTENSION_ID_PA
 // derived from its favoriteKey (command, name, args), so reordering or moving never changes it.
 // `pins` enables the pinned flag (Global scope only): it needs a pinnable icon and at most one group
 // per icon; anything else is ignored when reading hand-edited settings.
-function readGroups(rawGroups, { pins = false } = {}) {
+// `report` (optional object) receives `dropped`: how many groups/items were discarded for being invalid.
+function readGroups(rawGroups, { pins = false, report } = {}) {
+  const drop = n => { if (report && n > 0) report.dropped = (report.dropped || 0) + n; };
   if (!Array.isArray(rawGroups)) return [];
   // Same rules as validateGroups: at most MAX_GROUPS groups, trimmed non-empty names within the limits.
   const valid = rawGroups.filter(g => g && typeof g.name === 'string' && Array.isArray(g.items) && cleanText(g.name))
     .slice(0, MAX_GROUPS).map(g => ({ ...g, name: cleanText(g.name).slice(0, MAX_NAME) }));
+  drop(rawGroups.length - valid.length);
   const groupIds = new Set(), itemIds = new Set(), pinnedIcons = new Set();
   const persisted = valid.map(g => (validId(g.id) && !groupIds.has(g.id) ? (groupIds.add(g.id), g.id) : null));
   return valid.map((group, gi) => {
@@ -71,7 +79,7 @@ function readGroups(rawGroups, { pins = false } = {}) {
       color: validColor(group.color) ? group.color : NEUTRAL_COLOR,
       ...(pinned ? { pinned: true } : {}),
       items: group.items
-        .filter(i => i && typeof i.name === 'string' && typeof i.command === 'string' && cleanText(i.name) && i.command.trim() && i.command.trim().length <= MAX_COMMAND && !isBlockedCommand(i.command))
+        .filter(i => { const ok = i && typeof i.name === 'string' && typeof i.command === 'string' && cleanText(i.name) && i.command.trim() && i.command.trim().length <= MAX_COMMAND && !isBlockedCommand(i.command) && argsSize(i.args) <= MAX_ARGS; if (!ok) drop(1); return ok; })
         .map(raw => ({ ...raw, name: cleanText(raw.name).slice(0, MAX_ITEM_NAME), command: raw.command.trim() }))
         .map(item => ({
           id: uniqueId(`it-${hash(favoriteKey(item))}`, itemIds),
@@ -118,6 +126,7 @@ function validateGroups(groups, { scope = 'global' } = {}) {
       if (isBlockedCommand(item.command)) throw new Error(`${at}: esse comando não pode ser usado como item.`);
       if (item.icon !== undefined && typeof item.icon !== 'string') throw new Error('Ícone inválido.');
       if (item.args !== undefined && !Array.isArray(item.args)) throw new Error('Argumentos devem ser uma lista.');
+      if (argsSize(item.args) > MAX_ARGS) throw new Error(`${at}: os argumentos passam de ${MAX_ARGS} caracteres.`);
       if (item.extensionId !== undefined && item.extensionId !== null && !validExtensionId(item.extensionId)) throw new Error('Identificador de extensão inválido.');
     }
   }
@@ -133,6 +142,8 @@ function validateGroups(groups, { scope = 'global' } = {}) {
   }));
 }
 
+function argsSize(args) { return Array.isArray(args) ? JSON.stringify(args).length : 0; }
+
 function pinnedGroups(groups) { return groups.filter(g => g.pinned === true); }
 
-module.exports = { readGroups, validateGroups, favoriteKey, extensionContainer, pinnedGroups, cleanText, isBlockedCommand, BLOCKED_COMMANDS, RECURSIVE_COMMAND, COLORS, NEUTRAL_COLOR, ID_PATTERN, MAX_GROUPS, MAX_NAME, MAX_ITEM_NAME, MAX_COMMAND };
+module.exports = { readGroups, validateGroups, favoriteKey, favoriteHash, HIDDEN, extensionContainer, pinnedGroups, cleanText, isBlockedCommand, BLOCKED_COMMANDS, RECURSIVE_COMMAND, COLORS, NEUTRAL_COLOR, ID_PATTERN, MAX_GROUPS, MAX_NAME, MAX_ITEM_NAME, MAX_COMMAND, MAX_ARGS };

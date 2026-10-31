@@ -44,6 +44,21 @@ Extensão para webview: `data`, `saved`, `saveError{reason}`, `focusGroup{seq,gr
 - **Ids derivados do nome (REV-5):** ver README, seção Segurança. É deliberado: a configuração escrita à mão continua válida sem `id`.
 - **Termo:** neste plano "item" é cada entrada de um grupo; "atalho" aparece só em textos antigos da v1.
 
+## Achados da segunda rodada (disposição)
+| ID | Disposição |
+|---|---|
+| SEC-7 | Corrigido: o modal mostra o comando e os argumentos completos, com controle, bidi e zero-width como escape; acima de 1500 caracteres mostra "(truncado, N caracteres no total)" e oferece só "Executar uma vez". Argumentos limitados a 4096 caracteres serializados (readGroups descarta, validateGroups recusa). |
+| SEC-8 | Corrigido: sem confirmação só workbench.view.* e uma lista explícita de ações inofensivas (SAFE_ACTIONS em src/tools-view.js). Tasks, debug, terminal e o resto pedem confirmação. |
+| SEC-9 | Corrigido: o comando vem primeiro e o nome do item vai entre aspas, em uma linha só. |
+| SEC-10 | Tratado: runCommands não está na lista segura, então sempre pede confirmação no projeto, com os argumentos à vista. No Global não pede (configuração do próprio usuário). |
+| SEC-11 | Corrigido: approvedItems e favoritos novos guardam SHA-256 (prefixo h:); chaves antigas de favoritos continuam valendo e migram ao alternar. Limpeza de chaves órfãs: não feita (a lista de aprovados é limitada a 200). |
+| SEC-12 | Corrigido: o painel usa a mesma lista BLOCKED_COMMANDS (teste de igualdade). |
+| QA-9 | Corrigido: a extensão conta o que descartou (stats.invalid) e o painel avisa que salvar remove isso. |
+| QA-10 = REV-12 | Corrigido: restoreFold não substitui navegação pendente; a janela de 5 s é só teto, e o focusAck a encurta para 400 ms. |
+| QA-8 (resíduo) | Corrigido: cleanText cobre U+061C, U+00AD, U+180E e tag characters. |
+| REV-11 | Corrigido: ux.md atualizado (escopo window, Workspace Trust). |
+| REV-13, QA-11, QA-5/6 cosmético | Ressalva registrada, sem código: ainda dependem de verificação no VS Code real (layout em 220 px, navegação por setas em Recentes). |
+
 ## Dívida técnica
 - **REV-4:** media/view.js tem cerca de 1100 linhas (render, DnD, teclado, seletor de ícones, menus). Dividir em módulos (render, dnd, picker, menus) depois de validar no VS Code real; a extração de model.js e sync.js foi o primeiro passo.
 

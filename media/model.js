@@ -6,6 +6,8 @@
   const COLORS = ['g-1', 'g-2', 'g-3', 'g-4', 'g-5', 'g-6', 'g-7', 'g-8', 'g-9', 'g-10'];
   const COLOR_NAMES = ['Azul', 'Violeta', 'Rosa', 'Vermelho', 'Laranja', 'Âmbar', 'Verde', 'Turquesa', 'Ciano', 'Ardósia'];
   const NEUTRAL = 'g-10';
+  // Same list as BLOCKED_COMMANDS in src/config.js (a test keeps them equal).
+  const BLOCKED_COMMANDS = ['groupedTools.run', 'groupedTools.runById', 'groupedTools.openGroup', 'groupedTools.manageGroup'];
   const MAX_GROUPS = 100; // same limit as src/config.js (a test keeps them equal)
   const clone = value => JSON.parse(JSON.stringify(value));
   let counter = 0;
@@ -250,7 +252,7 @@
     COLORS, COLOR_NAMES, NEUTRAL, clone, newId, normalize, colorOf, locate,
     moveItem, moveItemToIndex, stepItem, moveGroup, moveGroupToIndex, stepGroup,
     itemFromExtension, insertItem, createGroup, removeItem, removeGroup, updateGroup, updateItem,
-    MAX_GROUPS, serialize, computeUnassigned, searchIcons,
+    MAX_GROUPS, BLOCKED_COMMANDS, serialize, computeUnassigned, searchIcons,
     pinKey, pinOwner, pinState, setPinned, replacePin, pinWithIcon, iconBlock
   };
   root.groupModel = api;

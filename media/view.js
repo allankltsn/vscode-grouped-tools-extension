@@ -275,6 +275,8 @@
     const un = unassigned();
     let h = '';
     if (sync.error) h += `<div class="errbar" role="alert"><div class="t">${ic('circle-alert', 'sm')}<span>Não foi possível salvar: ${esc(sync.error)}. Suas alterações continuam aqui como rascunho.</span></div><div class="acts"><button type="button" class="btn" data-act="retry" data-fid="rt">Tentar de novo</button><button type="button" class="btn danger" data-act="discard">Descartar alterações</button></div></div>`;
+    const inv = data && data.stats ? data.stats.invalid : 0;
+    if (inv > 0) h += `<div class="infobar" role="status">${ic('circle-alert', 'sm')}<span class="txt">${pl(inv, 'grupo ou item inválido não é exibido', 'grupos ou itens inválidos não são exibidos')}. Salvar remove isso da configuração. Confira no Settings (groupedTools.groups).</span><button type="button" class="btn" data-act="settings">Abrir Settings</button></div>`;
     if (S.notice) h += `<div class="infobar" role="status">${ic('info', 'sm')}<span class="txt">${esc(S.notice)}</span><button type="button" class="btn" data-act="dismiss-notice" data-fid="nt">Entendi</button></div>`;
     if (noG) {
       if (!S.welcomeDone) {
@@ -603,7 +605,7 @@
     const name = $('#cmdName', n), cmd = $('#cmdId', n), err = $('#cmdErr', n);
     function submit() {
       const nm = name.value.trim(), cm = cmd.value.trim();
-      const problem = !nm ? 'Dê um nome ao item.' : !cm ? 'Informe o comando.' : cm === 'groupedTools.run' ? 'Esse comando não pode ser usado.' : '';
+      const problem = !nm ? 'Dê um nome ao item.' : !cm ? 'Informe o comando.' : M.BLOCKED_COMMANDS.includes(cm) ? 'Esse comando não pode ser usado.' : '';
       name.setAttribute('aria-invalid', String(!nm)); cmd.setAttribute('aria-invalid', String(Boolean(nm) && !cm));
       err.hidden = !problem; err.innerHTML = problem ? `${ic('circle-alert', 'xs')}${esc(problem)}` : '';
       if (problem) { (nm ? cmd : name).focus(); return; }

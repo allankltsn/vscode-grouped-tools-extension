@@ -49,7 +49,7 @@ O posicionamento e os controles para recolher a barra são administrados pelo VS
 
 ## Segurança
 
-- **Itens do projeto:** a configuração do projeto (.vscode/settings.json) pode vir de um repositório de terceiros. No escopo "Este projeto", um item com argumentos, ou com comando fora de workbench.view.* e workbench.action.*, pede confirmação modal mostrando o comando e os argumentos antes da primeira execução (lembrada por item no workspaceState). Itens do Global não pedem. O comando do item aparece no title do botão.
+- **Itens do projeto:** a configuração do projeto (.vscode/settings.json) pode vir de um repositório de terceiros. No escopo "Este projeto", um item com argumentos, ou com comando fora de workbench.view.* e de uma lista curta de ações inofensivas (SAFE_ACTIONS em src/tools-view.js), pede confirmação modal com o comando e os argumentos completos (caracteres ocultos aparecem como XXXX). Argumentos longos (acima de 1500 caracteres) só podem ser executados uma vez; nos demais há "Executar e lembrar" (guardado como SHA-256 no workspaceState). Itens do Global não pedem. O comando do item aparece no title do botão.
 - **Pasta não confiável:** a extensão declara suporte limitado (untrustedWorkspaces, restrictedConfigurations groupedTools.groups) e lê/grava só o valor Global enquanto a pasta não for confiável.
 - **Comandos bloqueados como item:** groupedTools.run, runById, openGroup e manageGroup. O comando groupedTools.run não existe mais.
 - **Limites da configuração:** até 100 grupos, nomes de até 100 caracteres, comando de até 200; caracteres de controle e bidi são removidos dos nomes. Erros de salvamento dizem qual grupo ou item corrigir.

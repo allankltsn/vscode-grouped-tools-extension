@@ -207,3 +207,22 @@ test('QA-8: cleanText strips control, zero-width and bidi characters', () => {
   const dirty = ['  a', '‮', 'b', '⁦', 'c', '​', 'd', '\u0000', 'e\tf\n g '].join('');
   assert.equal(cleanText(dirty), 'abcde f g');
 });
+
+test('SEC-7: args over 4096 serialized characters are rejected by validateGroups and dropped by readGroups', () => {
+  const { readGroups, MAX_ARGS } = require('../src/config');
+  const big = [{ name: 'g', items: [{ name: 'i', command: 'c', args: ['x'.repeat(MAX_ARGS)] }, { name: 'ok', command: 'c', args: ['x'] }] }];
+  assert.throws(() => validateGroups(big), /Grupo “g”, item “i”: os argumentos passam de 4096/);
+  const report = {};
+  assert.deepEqual(readGroups(big, { report })[0].items.map(i => i.name), ['ok']);
+  assert.equal(report.dropped, 1);
+});
+
+test('QA-8: cleanText also strips ALM, soft hyphen, Mongolian vowel separator and tag characters', () => {
+  const { cleanText } = require('../src/config');
+  const dirty = ['a', '؜', 'b', '­', 'c', '᠎', 'd', String.fromCodePoint(0xE0041), 'e'].join('');
+  assert.equal(cleanText(dirty), 'abcde');
+});
+
+test('SEC-12: the webview and the extension block the same commands', () => {
+  assert.deepEqual(require('../media/model').BLOCKED_COMMANDS, require('../src/config').BLOCKED_COMMANDS);
+});
