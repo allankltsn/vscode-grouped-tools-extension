@@ -70,7 +70,7 @@ html,body{height:100%;margin:0;padding:0;overflow:hidden;background:var(--vscode
 mark{background:color-mix(in srgb,var(--accent) 32%,transparent);color:inherit;border-radius:2px}
 
 /* 4.1 busca e barra */
-.top{flex:none;padding:var(--sp-4) var(--sp-4) var(--sp-3);display:grid;gap:var(--sp-3);background:var(--bg);z-index:var(--z-sticky)}
+.top{grid-template-columns:minmax(0,1fr);flex:none;padding:var(--sp-4) var(--sp-4) var(--sp-3);display:grid;gap:var(--sp-3);background:var(--bg);z-index:var(--z-sticky)}
 .row{display:flex;align-items:center;gap:var(--sp-3);min-width:0}
 .search{position:relative;flex:1;min-width:0;display:block}
 .search .s-ic{position:absolute;inset:0 auto 0 var(--sp-3);display:grid;place-items:center;color:var(--fg-dim);pointer-events:none}
@@ -410,3 +410,7 @@ li.empty .lk:hover{background:var(--hover)}
 .spin{animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.spin{animation:none}}
+@container app (max-width:259px){
+  .gtoggle{gap:var(--sp-2)}
+  .pinbadge{border:0;padding:0;height:auto}
+}

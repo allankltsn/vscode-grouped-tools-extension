@@ -1,6 +1,7 @@
 /* Pure group model and icon search for the panel. No DOM access, so it is unit-tested under Node. */
 (function (root) {
   'use strict';
+  const catalog = typeof module !== 'undefined' && module.exports ? require('./pin-catalog') : root.pinCatalog;
 
   const COLORS = ['g-1', 'g-2', 'g-3', 'g-4', 'g-5', 'g-6', 'g-7', 'g-8', 'g-9', 'g-10'];
   const COLOR_NAMES = ['Azul', 'Violeta', 'Rosa', 'Vermelho', 'Laranja', 'Âmbar', 'Verde', 'Turquesa', 'Ciano', 'Ardósia'];
@@ -247,7 +248,8 @@
     COLORS, COLOR_NAMES, NEUTRAL, clone, newId, normalize, colorOf, locate,
     moveItem, moveItemToIndex, stepItem, moveGroup, moveGroupToIndex, stepGroup,
     itemFromExtension, insertItem, createGroup, removeItem, removeGroup, updateGroup, updateItem,
-    serialize, computeUnassigned, searchIcons
+    serialize, computeUnassigned, searchIcons,
+    pinKey, pinOwner, pinState, setPinned, replacePin, pinWithIcon, iconBlock
   };
   root.groupModel = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
