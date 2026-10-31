@@ -79,3 +79,5 @@ Extensão para webview: `data`, `saved`, `saveError{reason}`, `focusGroup{seq,gr
 - `color-mix()` exige VS Code >= 1.78 (`engines` ^1.85, ok).
 - Ids de item mudam de `new-*` para hash após salvar: o foco cai para o cabeçalho do grupo quando o alvo some.
 - Risco de regressão de favoritos: a chave (`favoriteKey`) não mudou.
+
+- SEC-17: "blank" now covers every Unicode space (\s) plus U+2800, U+3164, U+FFA0, U+115F, U+1160 and the JSON escapes \t \n \r. SEC-18: the favorites cap keeps the newest (slice(-500)) on activation and on toggle; hashes without a matching item in the current scope are kept on purpose (items of other scopes/projects share the same workspaceState), so they are not pruned.

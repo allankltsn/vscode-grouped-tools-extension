@@ -32,8 +32,14 @@ const visible = text => String(text).replace(HIDDEN, ch => {
   return cp > 0xFFFF ? `\\u{${hex}}` : `\\u${hex.padStart(4, '0')}`;
 });
 // Long runs of blanks would push the payload out of sight in the modal: show them as a counter.
-const collapseBlanks = text => text.replace(/(?: |\\t){4,}/g, run => `␠×${run.replace(/\\t/g, '\t').length}`);
-const mostlyBlank = text => text.length > 100 && (text.match(/ |\\t/g) || []).length > text.length / 2;
+// "Blank" = any Unicode space plus the invisible fillers (braille blank, Hangul fillers) and the JSON escapes of
+// tab/newline/return (args are shown as JSON text, so a tab appears as the two characters backslash and t).
+const BLANK_UNIT = String.raw`(?:\\[tnr]|[\s⠀ㅤﾠᅟᅠ])`;
+const BLANK_RUN = new RegExp(BLANK_UNIT + '{4,}', 'gu');
+const BLANK_ANY = new RegExp(BLANK_UNIT, 'gu');
+const blankLength = run => run.replace(/\\[tnr]/g, ' ').length;
+const collapseBlanks = text => text.replace(BLANK_RUN, run => `␠×${blankLength(run)}`);
+const mostlyBlank = text => text.length > 100 && (text.match(BLANK_ANY) || []).length > text.length / 2;
 const GROUP_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
 function listViewExtensions() {
@@ -216,7 +222,7 @@ class ToolsView {
       const favorites = new Set(this.context.workspaceState.get('favorites', []));
       const old = favoriteKey(item), key = favoriteHash(item); // legacy plain keys are still read and are migrated on toggle
       if (favorites.has(key) || favorites.has(old)) { favorites.delete(key); favorites.delete(old); } else favorites.add(key);
-      await this.context.workspaceState.update('favorites', [...favorites]);
+      await this.context.workspaceState.update('favorites', [...favorites].slice(-MAX_FAVORITES));
       this.refresh();
     }
   }
@@ -263,7 +269,7 @@ class ToolsView {
       const hashed = key.startsWith('h:') ? key : byPlain.get(key);
       if (hashed && !keep.includes(hashed)) keep.push(hashed);
     }
-    const favorites = keep.slice(0, MAX_FAVORITES);
+    const favorites = keep.slice(-MAX_FAVORITES); // the newest are kept
     const approved = state.get('approvedItems', []).filter(k => typeof k === 'string' && k.startsWith('h:')).slice(0, MAX_APPROVED);
     if (JSON.stringify(favorites) !== JSON.stringify(state.get('favorites', []))) await state.update('favorites', favorites);
     if (JSON.stringify(approved) !== JSON.stringify(state.get('approvedItems', []))) await state.update('approvedItems', approved);
