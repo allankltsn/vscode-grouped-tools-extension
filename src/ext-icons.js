@@ -24,6 +24,13 @@ function fromFile(extensionPath, relative, fsApi) {
   const base = path.resolve(extensionPath), file = path.resolve(base, relative);
   const inside = path.relative(base, file);
   if (!inside || inside.startsWith('..') || path.isAbsolute(inside)) return null; // never leaves the extension folder
+  // Symlinks and junctions: the REAL path of the file must stay under the REAL path of the extension folder.
+  if (typeof fsApi.realpathSync === 'function') {
+    try {
+      const realInside = path.relative(fsApi.realpathSync(base), fsApi.realpathSync(file));
+      if (!realInside || realInside.startsWith('..') || path.isAbsolute(realInside)) return null;
+    } catch { return null; }
+  }
   const ext = path.extname(file).toLowerCase();
   if (ext === '.svg') {
     const buffer = readLimited(file, svgSafe.MAX_SVG, fsApi);

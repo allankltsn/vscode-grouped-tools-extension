@@ -12,10 +12,25 @@
     ellipse: ['cx', 'cy', 'rx', 'ry'], polyline: ['points'], polygon: ['points']
   };
   const IGNORED = new Set(['title', 'desc', 'metadata']); // their text is never output
-  const NUMBER = /^-?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?$/;
+  // Every attribute is length-checked BEFORE any regex runs, and every pattern below is unambiguous (no nested or
+  // overlapping quantifiers), so matching time is linear in the (bounded) input.
+  const MAX_NUM = 32, MAX_TRANSFORM = 200, MAX_FUNCS = 8, MAX_VIEWBOX = 120, MAX_GEOMETRY = 4000;
+  const NUMBER = /^-?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?$/;
+  const num = v => typeof v === 'string' && v.length <= MAX_NUM && NUMBER.test(v);
   const GEOMETRY = /^[-0-9.eE+ ,]*$/;
   const PATH_DATA = /^[MmLlHhVvCcSsQqTtAaZz0-9eE+\-., \t\r\n]*$/;
-  const TRANSFORM = /^(?:\s*(?:matrix|translate|scale|rotate|skewX|skewY)\s*\(\s*[-0-9.eE+ ,]*\)\s*)*$/;
+  const TRANSFORM_FN = /\s*(?:matrix|translate|scale|rotate|skewX|skewY)\([-0-9.eE+ ,]*\)/y;
+  // Manual tokenizer: sticky matches from a moving index, at most MAX_FUNCS functions, nothing else allowed.
+  function validTransform(v) {
+    if (typeof v !== 'string' || v.length > MAX_TRANSFORM) return false;
+    let at = 0, n = 0;
+    while (v.slice(at).trim() !== '') {
+      TRANSFORM_FN.lastIndex = at;
+      if (!TRANSFORM_FN.test(v) || ++n > MAX_FUNCS) return false;
+      at = TRANSFORM_FN.lastIndex;
+    }
+    return true;
+  }
   const ENUMS = {
     'stroke-linecap': ['butt', 'round', 'square'], 'stroke-linejoin': ['miter', 'round', 'bevel', 'miter-clip', 'arcs'],
     'fill-rule': ['nonzero', 'evenodd'], 'clip-rule': ['nonzero', 'evenodd']
@@ -29,9 +44,9 @@
       if (attrs[name] === undefined) continue;
       out += ` ${name}="${attrs[name].trim() === 'none' ? 'none' : 'currentColor'}"`;
     }
-    for (const name of NUMERIC) if (attrs[name] !== undefined && NUMBER.test(attrs[name].trim())) out += ` ${name}="${attrs[name].trim()}"`;
+    for (const name of NUMERIC) if (attrs[name] !== undefined && num(attrs[name].trim())) out += ` ${name}="${attrs[name].trim()}"`;
     for (const name of Object.keys(ENUMS)) if (attrs[name] !== undefined && ENUMS[name].includes(attrs[name].trim())) out += ` ${name}="${attrs[name].trim()}"`;
-    if (attrs.transform !== undefined && TRANSFORM.test(attrs.transform) && attrs.transform.length <= 200) out += ` transform="${attrs.transform.trim()}"`;
+    if (validTransform(attrs.transform)) out += ` transform="${attrs.transform.trim()}"`;
     return out;
   }
 
@@ -47,13 +62,28 @@
 
   function viewBoxOf(attrs) {
     const vb = attrs.viewBox;
-    if (vb !== undefined) {
+    if (typeof vb === 'string' && vb.length <= MAX_VIEWBOX) {
       const n = vb.trim().split(/[\s,]+/);
-      if (n.length === 4 && n.every(x => NUMBER.test(x)) && Number(n[2]) > 0 && Number(n[3]) > 0) return n.join(' ');
+      if (n.length === 4 && n.every(num) && Number(n[2]) > 0 && Number(n[3]) > 0) return n.join(' ');
     }
-    const w = parseFloat(attrs.width), h = parseFloat(attrs.height);
+    const w = parseFloat(String(attrs.width).slice(0, MAX_NUM)), h = parseFloat(String(attrs.height).slice(0, MAX_NUM));
     if (w > 0 && h > 0 && w <= 4096 && h <= 4096) return `0 0 ${w} ${h}`;
     return '0 0 24 24';
+  }
+
+  // Removes every `open ... close` block with indexOf (linear, unlike a lazy regex retried at each opener);
+  // an unterminated block rejects the icon. A DOCTYPE with an internal subset (`[`) is rejected as well.
+  function stripBlocks(text, open, close, ci) {
+    const hay = ci ? text.replace(/[A-Z]/g, c => c.toLowerCase()) : text;
+    let out = '', at = 0;
+    for (;;) {
+      const i = hay.indexOf(open, at);
+      if (i < 0) return out + text.slice(at);
+      const j = hay.indexOf(close, i + open.length);
+      if (j < 0) return null;
+      if (ci && text.slice(i, j).includes('[')) return null;
+      out += text.slice(at, i); at = j + close.length;
+    }
   }
 
   // Returns { viewBox, body } or null when the icon is rejected.
@@ -61,7 +91,10 @@
     if (typeof text !== 'string' || text.length > MAX_SVG) return null;
     let src = text.replace(/^﻿/, '');
     if (/<!ENTITY|<!\[CDATA\[/i.test(src)) return null;
-    src = src.replace(/<\?xml[\s\S]*?\?>/g, '').replace(/<!--[\s\S]*?-->/g, '').replace(/<!DOCTYPE[^>[]*>/gi, '');
+    src = stripBlocks(src, '<?xml', '?>');
+    if (src !== null) src = stripBlocks(src, '<!--', '-->');
+    if (src !== null) src = stripBlocks(src, '<!doctype', '>', true);
+    if (src === null) return null;
     const tag = /<(\/?)([A-Za-z][A-Za-z0-9:-]*)((?:\s+[^\s=<>"'/]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'<>]+))?)*)\s*(\/?)>/y;
     const stack = []; let at = 0, body = '', rootAttrs = null, count = 0, closed = false;
     while (at < src.length) {
@@ -95,7 +128,7 @@
         for (const a of SHAPES[name]) {
           const v = attrs[a];
           if (v === undefined) continue;
-          if (a === 'd' ? v.length <= MAX_PATH && PATH_DATA.test(v) : GEOMETRY.test(v) && v.length <= 4000) out += ` ${a}="${v.trim()}"`;
+          if (a === 'd' ? v.length <= MAX_PATH && PATH_DATA.test(v) : v.length <= MAX_GEOMETRY && GEOMETRY.test(v)) out += ` ${a}="${v.trim()}"`;
         }
         body += `${out}${presentation(attrs)}/>`;
       } else if (!IGNORED.has(name)) return null; // script, foreignObject, use, image, style, a, animate, defs...
@@ -109,6 +142,7 @@
   // Defense in depth in the webview: the markup it receives must survive the sanitizer unchanged.
   function checkImage(img) {
     if (!img || typeof img !== 'object') return null;
+    if (img.kind === 'lucide') return typeof img.name === 'string' && /^[a-z0-9-]{1,64}$/.test(img.name) ? img : null; // the webview renders it only if its local catalog has the name
     if (img.kind === 'png') return typeof img.src === 'string' && img.src.length <= 24000 && /^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(img.src) ? img : null;
     if (img.kind === 'svg') {
       const again = typeof img.viewBox === 'string' && typeof img.body === 'string' ? sanitizeSvg(`<svg viewBox="${img.viewBox}">${img.body}</svg>`) : null;
@@ -117,7 +151,10 @@
     return null;
   }
 
-  const api = { sanitizeSvg, checkImage, MAX_SVG };
+  // Only the default icon of an item is replaced by the extension's original; a deliberate choice (even 'puzzle') stays.
+  const isGenericIcon = icon => !icon || icon === 'extensions';
+
+  const api = { sanitizeSvg, checkImage, isGenericIcon, MAX_SVG };
   root.svgSafe = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

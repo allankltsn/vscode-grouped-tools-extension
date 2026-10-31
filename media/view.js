@@ -22,9 +22,10 @@
   // Original icon of an extension (sanitized by the extension host, re-checked here); falls back to the chosen icon.
   // A user-chosen item icon wins: only the generic default is replaced.
   function eic(entity, cls) {
-    const generic = !entity.icon || entity.icon === 'extensions' || entity.icon === 'puzzle';
+    const generic = window.svgSafe ? window.svgSafe.isGenericIcon(entity.icon) : false;
     const img = generic && entity.iconKey && data && data.icons && window.svgSafe ? window.svgSafe.checkImage(data.icons[entity.iconKey]) : null;
     if (!img) return ic(entity.icon, cls);
+    if (img.kind === 'lucide') return Object.hasOwn(I, img.name) ? ic(img.name, cls) : ic(entity.icon, cls);
     if (img.kind === 'svg') return `<svg class="ic${cls ? ` ${cls}` : ''}" viewBox="${img.viewBox}" aria-hidden="true" focusable="false">${img.body}</svg>`;
     return `<img class="ic png${cls ? ` ${cls}` : ''}" src="${img.src}" alt="" width="16" height="16">`;
   }
@@ -708,7 +709,7 @@
       g.items.splice(at, 0, it); S.collapsed[g.id] = false; persist();
       if (pre && pre.g.id === g.id && pre.i === at) return { skip: true, focus: `ib:${it.id}` };
       const verb = d.type === 'item' ? 'movido para' : 'adicionado a';
-      const hint = d.type === 'tray' && S.remember ? `Para liberar a barra de atividades: clique com o botão direito no ícone de ${it.name} e escolha Ocultar.` : '';
+      const hint = d.type === 'tray' && S.remember ? M.hideHint(it.name) : '';
       return { hint, op: `${it.name} ${verb} ${g.name}`, say: `${it.name} ${verb} ${g.name}, posição ${at + 1} de ${g.items.length}${gid === null ? '. Digite o nome do novo grupo.' : ''}`, focus: gid === null ? null : `ib:${it.id}` };
     });
   }

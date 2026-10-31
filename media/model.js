@@ -248,8 +248,15 @@
     return scored.sort((a, b) => b[0] - a[0]).map(entry => entry[1]);
   }
 
+  // One-line, plain-text label for the "hide the icon" tip and its clipboard copy: the name of another extension is
+  // untrusted, so only letters, digits and basic punctuation survive, at most 60 characters.
+  function hideName(name) {
+    return String(name).slice(0, 240).replace(/[^p{L}p{N} ._()'-]+/gu, ' ').replace(/s+/g, ' ').trim().slice(0, 60) || 'a extensão';
+  }
+  const hideHint = name => `Para liberar a barra de atividades: clique com o botão direito no ícone de ${hideName(name)} e escolha Ocultar.`;
+
   const api = {
-    COLORS, COLOR_NAMES, NEUTRAL, clone, newId, normalize, colorOf, locate,
+    hideName, hideHint, COLORS, COLOR_NAMES, NEUTRAL, clone, newId, normalize, colorOf, locate,
     moveItem, moveItemToIndex, stepItem, moveGroup, moveGroupToIndex, stepGroup,
     itemFromExtension, insertItem, createGroup, removeItem, removeGroup, updateGroup, updateItem,
     MAX_GROUPS, BLOCKED_COMMANDS, serialize, computeUnassigned, searchIcons,

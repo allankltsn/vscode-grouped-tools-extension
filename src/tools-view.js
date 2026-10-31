@@ -1,7 +1,7 @@
 'use strict';
 const vscode = require('vscode');
 const crypto = require('crypto');
-const { readGroups, validateGroups, favoriteKey, favoriteHash, HIDDEN, extensionContainer, pinnedGroups } = require('./config');
+const { readGroups, validateGroups, favoriteKey, favoriteHash, cleanText, HIDDEN, extensionContainer, pinnedGroups } = require('./config');
 const { runItem } = require('./commands');
 const catalog = require('../media/pin-catalog');
 const { resolveIcon } = require('./ext-icons');
@@ -48,14 +48,24 @@ const GROUP_ID = /^[A-Za-z0-9_-]{1,64}$/;
 const WORKBENCH_CONTAINERS = new Set(['explorer', 'debug', 'scm', 'test', 'remote', 'timeline', 'outline', 'groupedTools']);
 const hiddenContainer = key => WORKBENCH_CONTAINERS.has(key) || key.startsWith('groupedTools.pin.');
 
+const MAX_LIST_NAME = 60;
+
+// A third-party manifest may be malformed: anything unexpected skips that extension (or view), never the refresh.
 function listViewExtensions() {
   return vscode.extensions.all.flatMap(extension => {
-    const manifest = extension.packageJSON;
-    return Object.entries(manifest.contributes?.views || {}).filter(([container]) => !hiddenContainer(container)).map(([container, views]) => ({
-      name: manifest.displayName || manifest.name, extensionId: extension.id, container,
-      command: `workbench.view.extension.${container}`,
-      icon: 'extensions', views: views.map(v => v.name).join(', ')
-    }));
+    try {
+      const manifest = extension.packageJSON;
+      const map = manifest && manifest.contributes && manifest.contributes.views;
+      if (!map || typeof map !== 'object' || Array.isArray(map)) return [];
+      const name = cleanText(String(manifest.displayName || manifest.name || '').slice(0, MAX_LIST_NAME * 4)).slice(0, MAX_LIST_NAME);
+      if (!name) return [];
+      return Object.entries(map).filter(([container, views]) => !hiddenContainer(container) && Array.isArray(views)).map(([container, views]) => ({
+        name, extensionId: extension.id, container,
+        command: `workbench.view.extension.${container}`,
+        icon: 'extensions',
+        views: views.filter(v => v && typeof v === 'object' && typeof v.name === 'string').slice(0, 20).map(v => cleanText(v.name).slice(0, MAX_LIST_NAME)).join(', ')
+      }));
+    } catch { return []; }
   }).sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -64,11 +74,15 @@ function listViewExtensions() {
 function containerIndex() {
   const index = new Map();
   for (const extension of vscode.extensions.all) {
-    const contributes = extension.packageJSON?.contributes || {};
-    for (const container of Object.keys(contributes.views || {})) if (!index.has(container)) index.set(container, extension.id);
-    for (const list of Object.values(contributes.viewsContainers || {})) {
-      if (Array.isArray(list)) for (const c of list) if (c && typeof c.id === 'string' && !index.has(c.id)) index.set(c.id, extension.id);
-    }
+    try {
+      const contributes = (extension.packageJSON && extension.packageJSON.contributes) || {};
+      const views = contributes.views && typeof contributes.views === 'object' && !Array.isArray(contributes.views) ? contributes.views : {};
+      for (const container of Object.keys(views)) if (!index.has(container)) index.set(container, extension.id);
+      const bars = contributes.viewsContainers && typeof contributes.viewsContainers === 'object' ? Object.values(contributes.viewsContainers) : [];
+      for (const list of bars) {
+        if (Array.isArray(list)) for (const c of list) if (c && typeof c.id === 'string' && !index.has(c.id)) index.set(c.id, extension.id);
+      }
+    } catch { /* a malformed third-party manifest is skipped */ }
   }
   return index;
 }
@@ -342,7 +356,9 @@ class ToolsView {
     const key = `${extensionId}@${extension.packageJSON?.version || ''}/${container || ''}`;
     if (!this.iconCache.has(key)) {
       if (this.iconCache.size > 500) this.iconCache.clear();
-      this.iconCache.set(key, resolveIcon(extension, container));
+      let image = null;
+      try { image = resolveIcon(extension, container); } catch { image = null; }
+      this.iconCache.set(key, image);
     }
     const image = this.iconCache.get(key);
     if (!image) return undefined;
