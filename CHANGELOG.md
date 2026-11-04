@@ -47,7 +47,7 @@ Medido com `git show` em cada um dos 29 commits sem merges: contagem de linhas q
 ## <img src="assets/icons/teal/rocket.svg" width="22" align="top"> 0.1.0 (04/11/2026)
 
 > [!IMPORTANT]
-> **Versão 0.1.0 (MINOR).** O redesenho completo do painel e os ajustes de 04/11/2026 adicionam capacidades compatíveis com o que já existia (cor por código, organização sempre ativa, arraste da bandeja), o que justifica subir a versão menor (policies/versioning.md). A tag foi criada só localmente; nada foi publicado.
+> **Versão 0.1.0 (MINOR).** O redesenho completo do painel e os ajustes de 04/11/2026 adicionam capacidades compatíveis com o que já existia (cor por código, organização sempre ativa, arraste da bandeja), o que justifica subir a versão menor (policies/versioning.md). As tags v0.1.0 e v0.1.1 foram publicadas no GitHub em 04/11/2026.
 
 ### <img src="assets/icons/teal/refresh-cw.svg" width="20" align="top"> Ajustes do painel (04/11/2026)
 
