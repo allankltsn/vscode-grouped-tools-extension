@@ -230,17 +230,26 @@ test('pins: status bar items, context keys and hover follow the Global pinned gr
   // git-branch is used by two groups: the second is ignored, so two items and two keys exist
   assert.equal(statusItems.length, 2, 'items are reused across updates');
   const [git, dbs] = statusItems;
-  assert.equal(git.text, '$(git-branch) Git (2)');
-  assert.equal(dbs.text, '$(database) Bancos (0)');
+  assert.equal(git.text, '$(git-branch) 2', 'AJ-10: icon and number only');
+  assert.equal(dbs.text, '$(database) 0');
+  assert.equal(git.accessibilityInformation.label, 'Git, 2 extensões. Abre o grupo no painel group tools.', 'full name stays in the accessible label');
+  assert.equal(git.name, 'group tools: Git');
   assert.ok(git.priority > dbs.priority);
   assert.ok(git.shown);
-  assert.deepEqual(git.command, { command: 'groupedTools.openGroup', title: 'Abrir grupo no Ferramentas', arguments: ['git'] });
+  assert.deepEqual(git.command, { command: 'groupedTools.openGroup', title: 'Abrir grupo no group tools', arguments: ['git'] });
   assert.deepEqual(contexts.filter(c => c[1] === true).map(c => c[0]).sort(), ['groupedTools.pinned.database', 'groupedTools.pinned.git_branch']);
   assert.deepEqual(git.tooltip.isTrusted.enabledCommands, ['groupedTools.runById', 'groupedTools.openGroup', 'groupedTools.manageGroup']);
   assert.match(git.tooltip.value, /\*\*Git\*\* · 2 extensões/);
   assert.match(git.tooltip.value, /command:groupedTools\.runById\?%5B%22git%22%2C%22it-/);
-  assert.match(git.tooltip.value, /!\[\|width=16,height=16\]\(file:\/\/\/c%3A\/ext\/spotify\/img\/icon\.png\)/, 'raster icon of the extension');
-  assert.match(git.tooltip.value, /\[Abrir no Ferramentas\]\(command:groupedTools\.openGroup\?%5B%22git%22%5D\) \| \[Gerenciar grupo\]\(command:groupedTools\.manageGroup/);
+  // AJ-9: no markdown image (a `|` inside it breaks the table cell, a file:// path does not render); rows are codicon + link
+  assert.ok(!/!\[|file:\/\/|width=16/.test(git.tooltip.value), 'no image markup in the hover');
+  const rows = git.tooltip.value.split('\n').filter(l => /^\| \$\(/.test(l));
+  assert.equal(rows.length, 2);
+  const linked = rows.filter(r => /^\| \$\((terminal|extensions)\) \| \[[^\]]+\]\(command:groupedTools\.runById\?%5B%22git%22%2C%22it-[^)]*\)/.test(r));
+  assert.equal(linked.length, 1, 'the installed extension is a link that opens it; the uninstalled one is dimmed text');
+  assert.ok(rows.every(r => /^\| \$\((terminal|extensions)\) \| /.test(r)), rows.join('\n'));
+  assert.ok(rows.every(r => (r.match(/(?<!\\)\|/g) || []).length === 3), 'every row has exactly two cells');
+  assert.match(git.tooltip.value, /\[Abrir no group tools\]\(command:groupedTools\.openGroup\?%5B%22git%22%5D\) \| \[Gerenciar grupo\]\(command:groupedTools\.manageGroup/);
   // unpin everything: items disposed, keys cleared
   inspected.globalValue = PINNED.map(g => ({ ...g, pinned: false }));
   handlers.config[0]({ affectsConfiguration: () => true });
@@ -253,7 +262,9 @@ test('pins: hover escapes names, never links to foreign commands, caps rows with
   const { handlers, statusItems } = setup({ inspect: { globalValue: [{ id: 'big', name: 'Grande $(zap)', icon: 'database', pinned: true, items: many }] } });
   handlers.config[0]({ affectsConfiguration: () => true });
   const md = statusItems[0].tooltip.value;
-  assert.equal(statusItems[0].text, '$(database) Grande $ (zap) (18)');
+  assert.equal(statusItems[0].text, '$(database) 18');
+  assert.ok(!md.includes('![') && !md.includes('file://'));
+  assert.match(statusItems[0].accessibilityInformation.label, /^Grande \$\(zap\), 18 extensões\./);
   const links = [...md.matchAll(/\]\(command:([A-Za-z.]+)/g)].map(m => m[1]);
   assert.ok(links.every(c => ['groupedTools.runById', 'groupedTools.openGroup', 'groupedTools.manageGroup'].includes(c)), links.join());
   assert.ok(!md.includes('reloadWindow)'), 'injected link target is escaped');
@@ -312,8 +323,8 @@ test('focus: openGroup is kept until acknowledged and resent after the webview s
   await send({ type: 'focusAck', seq: focus[0].seq });
   await send({ type: 'ready' });
   assert.equal(messages.filter(m => m.type === 'focusGroup').length, 2, 'acknowledged: not resent');
-  await provider.openGroup('git', { organize: true });
-  assert.equal(messages.at(-1).organize, true);
+  await provider.openGroup('git');
+  assert.equal('organize' in messages.at(-1), false, 'organizing is always on: no organize flag');
   await provider.openGroup('bad id!'); // invalid ids are ignored
   assert.equal(messages.at(-1).groupId, 'git');
 });
@@ -367,7 +378,9 @@ test('commands: hover commands resolve ids from the configuration only', async (
   await commandHandlers.get('groupedTools.runById')('nope', git.items[0].id);
   assert.equal(calls.length, 0);
   await commandHandlers.get('groupedTools.manageGroup')('git');
-  assert.equal(messages.at(-1).organize, true);
+  assert.equal(messages.at(-1).type, 'focusGroup');
+  assert.equal(messages.at(-1).groupId, 'git');
+  assert.equal('organize' in messages.at(-1), false);
   commandHandlers.get('groupedTools.toggleFold')();
   assert.equal(messages.at(-1).type, 'toggleFold');
   await commandHandlers.get('groupedTools.configure')();
@@ -491,7 +504,9 @@ test('QA-8: names with control and bidi characters are cleaned in status text an
   const item = ['I', '⁧', 'tem', '\u0007'].join('');
   const { handlers, statusItems } = setup({ inspect: { globalValue: [{ id: 'g', name, icon: 'cloud', pinned: true, items: [{ name: item, command: 'workbench.view.explorer' }] }] } });
   handlers.config[0]({ affectsConfiguration: () => true });
-  assert.equal(statusItems[0].text, '$(cloud) Abcd E (1)');
+  assert.equal(statusItems[0].text, '$(cloud) 1');
+  assert.equal(statusItems[0].accessibilityInformation.label.startsWith('Abcd E, 1 extensão.'), true);
+  assert.equal(/[‪-‮⁦-⁩​\u0007\n]/.test(statusItems[0].accessibilityInformation.label + statusItems[0].name), false);
   assert.equal(/[‪-‮⁦-⁩​\u0007]/.test(statusItems[0].tooltip.value), false);
 });
 
@@ -702,7 +717,7 @@ test('first activation: opens the panel once and tells where the icon is (positi
   const first = setup({ firstRun: true });
   await new Promise(r => setImmediate(r));
   assert.deepEqual(first.calls.filter(c => c[0] === 'workbench.view.extension.groupedTools'), [['workbench.view.extension.groupedTools']]);
-  assert.deepEqual(first.infos, [['Ferramentas está na barra de atividades. Arraste o ícone para onde quiser.', 'Entendi']]);
+  assert.deepEqual(first.infos, [['group tools está na barra de atividades. Arraste o ícone para onde quiser.', 'Entendi']]);
   assert.equal(first.gstore.welcomed, true);
   const again = setup(); // flag already set: silent
   await new Promise(r => setImmediate(r));
@@ -755,8 +770,4 @@ test('SEC-20/22: malformed manifests never break refresh; third-party names are 
   assert.ok(e.name.length <= 60);
   assert.ok(!/[\n‮⁦]/.test(e.name), JSON.stringify(e.name));
   assert.equal(data.extensions.find(x => x.extensionId === 'a.bad2').views, 'ok view');
-  const { hideHint, hideName } = require('../media/model');
-  assert.ok(!/[\n|‮]/.test(hideHint(evil)));
-  assert.ok(hideName(evil).length <= 60);
-  assert.equal(hideName('\n|||'), 'a extensão');
 });

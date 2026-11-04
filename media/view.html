@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src {{csp}}; img-src data:; script-src 'nonce-{{nonce}}';">
-<link rel="stylesheet" href="{{css}}"><title>Ferramentas agrupadas</title></head>
+<link rel="stylesheet" href="{{css}}"><title>group tools</title></head>
 <body>
-<main class="app" id="app" aria-label="Ferramentas agrupadas" aria-busy="true">
+<main class="app" id="app" aria-label="group tools" aria-busy="true">
 <header class="top">
 <div class="row">
 <div class="search">
@@ -12,7 +12,6 @@
 <button type="button" class="clear" id="qClear" aria-label="Limpar busca" hidden data-ic="x" data-icsm="1"></button>
 </div>
 <button type="button" class="btn-org btn-fold" id="btnFold" data-fid="fold"></button>
-<button type="button" class="btn-org" id="btnOrg" aria-pressed="false" data-fid="org"></button>
 </div>
 <div class="row">
 <div class="seg" role="group" aria-label="Filtro">
@@ -26,7 +25,7 @@
 <footer class="foot" id="foot"></footer>
 <div class="overlay" id="overlay"></div>
 <div class="sr" id="live" aria-live="polite" aria-atomic="true"></div>
-<p class="sr" id="kbhelp">Em modo Organizar: Espaço pega o item; setas movem; setas para os lados trocam de grupo; Espaço solta; Esc cancela. Alt mais seta move um passo.</p>
+<p class="sr" id="kbhelp">Alça de mover: Espaço ou Enter pega o item ou o grupo; setas movem; setas para os lados trocam de grupo; Espaço solta; Esc cancela. Alt mais seta para cima ou para baixo move um passo em qualquer item ou grupo.</p>
 </main>
 <script nonce="{{nonce}}" src="{{icons}}"></script><script nonce="{{nonce}}" src="{{catalog}}"></script><script nonce="{{nonce}}" src="{{svg}}"></script><script nonce="{{nonce}}" src="{{model}}"></script><script nonce="{{nonce}}" src="{{sync}}"></script><script nonce="{{nonce}}" src="{{js}}"></script>
 </body></html>

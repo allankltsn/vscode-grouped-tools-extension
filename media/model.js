@@ -16,7 +16,120 @@
     return `${prefix}${Date.now().toString(36)}${counter.toString(36)}${Math.random().toString(36).slice(2, 6)}`;
   }
   function normalize(text) { return String(text ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
-  function colorOf(group) { return COLORS.includes(group && group.color) ? group.color : NEUTRAL; }
+
+  // ---- group color: palette id (g-1..g-10) or a custom '#rrggbb' (lowercase, six digits, nothing else) ----------------
+  // Same rule as validColor in src/config.js (a test keeps them equal). Any other string is rejected.
+  const HEX_COLOR = /^#[0-9a-f]{6}$/;
+  const isHexColor = value => typeof value === 'string' && HEX_COLOR.test(value);
+  const isPaletteColor = value => typeof value === 'string' && COLORS.includes(value);
+  const isValidColor = value => isPaletteColor(value) || isHexColor(value);
+  function normalizeColor(value) { return isValidColor(value) ? value : NEUTRAL; }
+  function colorOf(group) { return normalizeColor(group && group.color); }
+  // CSS class of a group: the palette class, or 'g-custom' (the value itself is applied through the CSSOM, never in markup).
+  function colorClass(group) { return isHexColor(colorOf(group)) ? 'g-custom' : colorOf(group); }
+
+  // New groups get a random palette color (never the neutral slate), avoiding the neighbour above when possible.
+  // `rng` is injectable (returns a number in [0, 1)) so tests are deterministic.
+  const RANDOM_POOL = COLORS.filter(c => c !== NEUTRAL);
+  function randomColor(groups, rng = Math.random, at) {
+    const list = Array.isArray(groups) ? groups : [];
+    const index = at == null ? list.length : Math.max(0, Math.min(at, list.length));
+    const prev = index > 0 && list[index - 1] ? list[index - 1].color : null;
+    const pool = RANDOM_POOL.filter(c => c !== prev);
+    const r = Number(rng());
+    return pool[Number.isFinite(r) ? Math.min(pool.length - 1, Math.max(0, Math.floor(r * pool.length))) : 0];
+  }
+
+  // ---- color by code: HEX, RGB and HSL with an input mask and strict parsing -------------------------------------------
+  const COLOR_FORMATS = {
+    hex: { label: 'HEX', placeholder: '#3B82F6', example: 'Exemplos: #3B82F6 ou #38F', error: 'HEX precisa de 3 ou 6 dígitos (0 a 9 e A a F).' },
+    rgb: { label: 'RGB', placeholder: '59, 130, 246', example: 'Exemplo: 59, 130, 246 (cada valor de 0 a 255)', error: 'RGB precisa de três números inteiros de 0 a 255.' },
+    hsl: { label: 'HSL', placeholder: '217, 91%, 60%', example: 'Exemplo: 217, 91%, 60% (H de 0 a 360, S e L de 0 a 100)', error: 'HSL precisa de H de 0 a 360 e de S e L de 0 a 100%.' }
+  };
+  const FORMAT_LIMITS = { rgb: [255, 255, 255], hsl: [360, 100, 100] };
+  const hasFormat = format => typeof format === 'string' && Object.hasOwn(COLOR_FORMATS, format);
+  // Splits the typed text into at most three integer tokens. A token closes by itself when it cannot grow
+  // (three digits, or one more digit would pass the limit); a digit that would pass the limit is ignored.
+  function numberTokens(raw, limits) {
+    const tokens = []; let cur = '';
+    for (const ch of String(raw)) {
+      if (ch >= '0' && ch <= '9') {
+        if (tokens.length >= 3) break;
+        if (Number(cur + ch) > limits[tokens.length]) continue;
+        cur += ch;
+        if (cur.length === 3 || Number(cur) * 10 > limits[tokens.length]) { tokens.push(cur); cur = ''; }
+      } else if ((ch === ',' || ch === ' ' || ch === ';') && cur) { tokens.push(cur); cur = ''; }
+    }
+    const open = cur !== '';
+    if (open) tokens.push(cur);
+    return { tokens: tokens.slice(0, 3), open };
+  }
+  // Keeps only the characters and ranges valid for the chosen format and lays them out in the canonical mask.
+  // `how` is 'delete' (or true) while the user erases: nothing the user just removed is put back (no closing separator,
+  // no '%' on the last field). 'paste' treats the text as a whole value and clamps each number to its maximum.
+  function maskColorInput(format, raw, how) {
+    const deleting = how === true || how === 'delete', pasting = how === 'paste';
+    const text = String(raw == null ? '' : raw).slice(0, 64);
+    if (format === 'hex') {
+      const digits = text.replace(/[^0-9a-fA-F]/g, '').slice(0, 6).toUpperCase();
+      return digits ? `#${digits}` : (text.includes('#') ? '#' : '');
+    }
+    if (!hasFormat(format) || !Object.hasOwn(FORMAT_LIMITS, format)) return '';
+    const limits = FORMAT_LIMITS[format];
+    if (pasting) {
+      const nums = (text.match(/\d+/g) || []).slice(0, 3).map((t, i) => String(Math.min(limits[i], Number(t.slice(0, 6)))));
+      return nums.map((t, i) => (format === 'hsl' && i > 0 ? `${t}%` : t)).join(', ');
+    }
+    const { tokens, open } = numberTokens(text, limits);
+    const pct = (t, i) => (format === 'hsl' && i > 0 && !(deleting && i === tokens.length - 1) ? `${t}%` : t);
+    let out = tokens.map((t, i) => pct(t, i)).join(', ');
+    if (out && !open && !deleting && tokens.length < 3) out += ', ';
+    return out;
+  }
+  const hex2 = n => n.toString(16).padStart(2, '0');
+  const rgbToHex = (r, g, b) => `#${hex2(r)}${hex2(g)}${hex2(b)}`;
+  function hslToHex(h, s, l) {
+    const sat = s / 100, lig = l / 100, k = n => (n + h / 30) % 12, a = sat * Math.min(lig, 1 - lig);
+    const f = n => lig - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    return rgbToHex(Math.round(f(0) * 255), Math.round(f(8) * 255), Math.round(f(4) * 255));
+  }
+  // Parses a complete value. Returns { ok: true, hex: '#rrggbb' } or { ok: false, error } (pt-BR). Never throws.
+  function parseColorInput(format, text) {
+    if (!hasFormat(format)) return { ok: false, error: 'Formato de cor desconhecido.' };
+    const spec = COLOR_FORMATS[format];
+    const value = String(text == null ? '' : text).trim();
+    if (format === 'hex') {
+      const m = /^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.exec(value);
+      if (!m) return { ok: false, error: spec.error };
+      const d = m[1].toLowerCase();
+      return { ok: true, hex: `#${d.length === 3 ? [...d].map(c => c + c).join('') : d}` };
+    }
+    const re = format === 'rgb' ? /^(\d{1,3})\s*[, ]\s*(\d{1,3})\s*[, ]\s*(\d{1,3})$/ : /^(\d{1,3})\s*[, ]\s*(\d{1,3})%?\s*[, ]\s*(\d{1,3})%?$/;
+    const m = re.exec(value.replace(/[,\s]+$/, ''));
+    if (!m) return { ok: false, error: spec.error };
+    const n = m.slice(1, 4).map(Number), limits = FORMAT_LIMITS[format];
+    if (n.some((v, i) => v > limits[i])) return { ok: false, error: spec.error };
+    return { ok: true, hex: format === 'rgb' ? rgbToHex(n[0], n[1], n[2]) : hslToHex(n[0] % 360, n[1], n[2]) };
+  }
+
+  // WCAG relative luminance and contrast of '#rrggbb' colors.
+  const channels = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+  function luminance(hex) {
+    const [r, g, b] = channels(hex).map(v => { const c = v / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+  function contrast(a, b) { const x = luminance(a), y = luminance(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+  // Black or white, whichever reads better over a custom color (e.g. the check mark on a swatch).
+  const onColor = hex => (contrast(hex, '#000000') >= contrast(hex, '#ffffff') ? '#000000' : '#ffffff');
+  // Group text color for a custom color: starts from the color and moves toward the theme foreground until it reaches
+  // `min` contrast over the panel background tinted by the group color (as the chip is).
+  function readableTone(hex, bg, fg, min = 4.5) {
+    if (!isHexColor(hex) || !isHexColor(bg) || !isHexColor(fg)) return isHexColor(fg) ? fg : hex;
+    const mix = (a, b, t) => { const x = channels(a), y = channels(b); return rgbToHex(...x.map((v, i) => Math.round(v * (1 - t) + y[i] * t))); };
+    const surface = mix(bg, hex, 0.16);
+    for (let i = 0; i <= 10; i++) { const c = mix(hex, fg, i / 10); if (contrast(c, surface) >= min) return c; }
+    return fg;
+  }
 
   function locate(groups, itemId) {
     for (let gi = 0; gi < groups.length; gi++) {
@@ -108,9 +221,9 @@
     return { groups: next, changed: true, item: copy, group: next[to], index: at < 0 ? items.length - 1 : at, total: items.length };
   }
 
-  function createGroup(groups, props = {}, at) {
-    const group = { id: newId('grp-'), name: props.name || 'Novo grupo', icon: props.icon || 'folder', color: props.color || COLORS[groups.length % 9], items: props.items || [] };
+  function createGroup(groups, props = {}, at, rng = Math.random) {
     if (groups.length >= MAX_GROUPS) return { groups, changed: false };
+    const group = { id: newId('grp-'), name: props.name || 'Novo grupo', icon: props.icon || 'folder', color: isValidColor(props.color) ? props.color : randomColor(groups, rng, at), items: props.items || [] };
     const next = clone(groups);
     next.splice(at == null ? next.length : at, 0, group);
     return { groups: next, changed: true, group };
@@ -248,15 +361,10 @@
     return scored.sort((a, b) => b[0] - a[0]).map(entry => entry[1]);
   }
 
-  // One-line, plain-text label for the "hide the icon" tip and its clipboard copy: the name of another extension is
-  // untrusted, so only letters, digits and basic punctuation survive, at most 60 characters.
-  function hideName(name) {
-    return String(name).slice(0, 240).replace(/[^\p{L}\p{N} ._()'-]+/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 60) || 'a extensão';
-  }
-  const hideHint = name => `Para liberar a barra de atividades: clique com o botão direito no ícone de ${hideName(name)} e escolha Ocultar.`;
-
   const api = {
-    hideName, hideHint, COLORS, COLOR_NAMES, NEUTRAL, clone, newId, normalize, colorOf, locate,
+    COLORS, COLOR_NAMES, NEUTRAL, clone, newId, normalize, colorOf, locate,
+    HEX_COLOR, isHexColor, isValidColor, normalizeColor, colorClass, randomColor,
+    COLOR_FORMATS, maskColorInput, parseColorInput, luminance, contrast, onColor, readableTone,
     moveItem, moveItemToIndex, stepItem, moveGroup, moveGroupToIndex, stepGroup,
     itemFromExtension, insertItem, createGroup, removeItem, removeGroup, updateGroup, updateItem,
     MAX_GROUPS, BLOCKED_COMMANDS, serialize, computeUnassigned, searchIcons,

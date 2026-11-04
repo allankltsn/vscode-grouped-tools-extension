@@ -9,7 +9,7 @@ const catalog = require('../media/pin-catalog');
 
 const root = path.join(__dirname, '..');
 const MAIN_CONTAINER = 'groupedTools';
-const TOOLS_ICON = 'blocks';
+const TOOLS_ICON = 'boxes';
 
 function loadIcons() {
   const sandbox = { window: {} };
@@ -25,12 +25,12 @@ function build(icons = loadIcons()) {
   const svgs = {}, containers = [], views = [];
   for (const icon of catalog.PIN_ICONS) {
     if (!icons[icon]) throw new Error(`Ícone fixável ausente em media/icons.js: ${icon}`);
-    const title = `Ferramentas · ${catalog.pinName(icon)}`;
+    const title = `group tools · ${catalog.pinName(icon)}`;
     svgs[`${icon}.svg`] = svg(icons[icon]);
     containers.push({ id: catalog.containerId(icon), title, icon: `media/pin/${icon}.svg` });
     views.push([catalog.containerId(icon), [{ id: catalog.viewId(icon), name: title, type: 'webview', when: catalog.contextKey(icon) }]]);
   }
-  // Main container icon: the same Lucide icon the approved prototype uses for Ferramentas in the Activity Bar.
+  // Main container icon: the Lucide `boxes` icon (extension identity in the Activity Bar).
   if (!icons[TOOLS_ICON]) throw new Error(`Ícone ausente em media/icons.js: ${TOOLS_ICON}`);
   return { svgs, containers, views, tools: svg(icons[TOOLS_ICON]) };
 }

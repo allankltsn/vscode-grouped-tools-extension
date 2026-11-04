@@ -3,7 +3,7 @@
 Todas as mudanças relevantes de **Ferramentas agrupadas** ficam neste arquivo. O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e a numeração segue o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 > [!NOTE]
-> O repositório não tem nenhuma tag git e o `package.json` está em `0.0.4`. As versões 0.0.2, 0.0.3 e 0.0.4 existem só como arquivos `.vsix` locais (ignorados no git); as datas e o conteúdo delas vêm da inspeção desses arquivos. As datas vêm da data de modificação dos arquivos: só o dia 08/10/2026 é confiável, não a ordem entre as três versões (os arquivos internos da 0.0.2 são mais recentes que os da 0.0.4). Onde o git não mostra a informação, o texto diz "sem registro".
+> Antes da 0.1.0 o repositório não tinha nenhuma tag git e o `package.json` estava em `0.0.4`. As versões 0.0.2, 0.0.3 e 0.0.4 existem só como arquivos `.vsix` locais (ignorados no git); as datas e o conteúdo delas vêm da inspeção desses arquivos. As datas vêm da data de modificação dos arquivos: só o dia 08/10/2026 é confiável, não a ordem entre as três versões (os arquivos internos da 0.0.2 são mais recentes que os da 0.0.4). Onde o git não mostra a informação, o texto diz "sem registro".
 
 > [!WARNING]
 > Pendência conhecida, NÃO verificada: pelo conhecimento do `vsce` (não foi executado), ele recusa SVG no README e no changelog, exceto de provedores de badge confiáveis. Este arquivo e o README usam SVG locais, então o primeiro `vsce package` pode falhar. Detalhes na seção de instalação como VSIX do [README](README.md).
@@ -27,10 +27,36 @@ Medido com `git show` em cada um dos 29 commits sem merges: contagem de linhas q
 
 ---
 
-## <img src="assets/icons/teal/tag.svg" width="22" align="top"> Não lançado
+## <img src="assets/icons/teal/rocket.svg" width="22" align="top"> 0.1.0 (04/11/2026)
 
 > [!IMPORTANT]
-> **Proposta de próxima versão: 0.1.0.** O redesenho completo do painel muda a interface, o modelo de dados e a superfície de segurança, o que justifica subir a versão menor. A decisão e a tag são do mantenedor; nada disso foi publicado.
+> **Versão 0.1.0 (MINOR).** O redesenho completo do painel e os ajustes de 04/11/2026 adicionam capacidades compatíveis com o que já existia (cor por código, organização sempre ativa, arraste da bandeja), o que justifica subir a versão menor (policies/versioning.md). A tag foi criada só localmente; nada foi publicado.
+
+### <img src="assets/icons/teal/refresh-cw.svg" width="20" align="top"> Ajustes do painel (04/11/2026)
+
+#### <img src="assets/icons/teal/plus.svg" width="18" align="top"> Adicionado
+
+- **Cor por código** no popover de cor do grupo: campo com máscara e seletor de formato (HEX `#RGB` e `#RRGGBB`, RGB, HSL), prévia, erro em português e botão Aplicar só com valor válido. A cor é guardada sempre como `#rrggbb` minúsculo; as cores `g-1` a `g-10` continuam válidas.
+- Novo grupo nasce com **cor aleatória** da paleta, evitando repetir a cor do grupo de cima.
+
+#### <img src="assets/icons/teal/refresh-cw.svg" width="18" align="top"> Alterado
+
+- **Organizar sempre ativo**: o botão e o modo Organizar saíram. Alças, arraste e teclado ficam sempre disponíveis e tudo é salvo na hora. Em lista filtrada (busca, favoritos, só quebrados) não há reordenação, como antes. Clicar no item sempre o executa; o ícone do item e o ícone do grupo não abrem mais o seletor ao clique (use o menu ⋯).
+- **Nome exibido: group tools** (`displayName`, contêiner principal, contêineres fixados como `group tools · IA`, título e rótulo do webview, comandos e textos do produto). `name`, ids de comandos, de views e chaves de configuração não mudam.
+- Ícone da barra de atividades: `boxes` do Lucide (gerado por `scripts/build-pins.js`).
+- **Barra de status**: o item do grupo fixado mostra só o ícone e o número de extensões; o nome continua no hover e no rótulo acessível.
+- **Bandeja**: adicionar uma extensão a um grupo só a move para o grupo, com aviso curto e Desfazer. A opção "Lembrar de ocultar o ícone ao adicionar" e o passo manual foram removidos: o VS Code não oferece como uma extensão oculte o ícone de outra, e o painel não promete isso.
+- O esquema de `groupedTools.groups` aceita `color` como `g-1` a `g-10` ou `#rrggbb` minúsculo (regex estrita no host e no painel).
+
+#### <img src="assets/icons/teal/wrench.svg" width="18" align="top"> Corrigido
+
+- **Bandeja "Não agrupadas" não arrastava**: os itens só eram arrastáveis no modo Organizar; agora sempre são. Também corrigido o soltar sobre uma posição de lista, que não disparava o evento de soltar no Chromium porque a linha de destino era recriada sob o cursor.
+- **Hover do grupo fixado** mostrava texto literal `![|width=16,height=16](file:///...)` nas linhas de extensões: o `|` da sintaxe de imagem quebrava a célula da tabela e imagem de caminho local não renderiza. As linhas agora usam ícone codicon e um link que abre a extensão.
+- **Paleta de cores saía do popover** em painéis largos (10 colunas fixas); agora as colunas seguem a largura do popover, sem rolagem horizontal.
+
+#### <img src="assets/icons/teal/flask-conical.svg" width="18" align="top"> Testes
+
+- `test/panel-ajustes.test.js`: cor aleatória, máscara e leitura de HEX, RGB e HSL, validação estrita de cor, contraste e verificações estáticas do painel.
 
 ### <img src="assets/icons/teal/layers.svg" width="20" align="top"> Redesenho completo do painel (31/10/2026)
 
@@ -44,7 +70,7 @@ Medido com `git show` em cada um dos 29 commits sem merges: contagem de linhas q
 | Contrato de dados com `id` e cor por grupo (`color`) | `fda3498` |
 | Menu de fixar com o texto "barra de atividades e barra de status" | `8fedf06` |
 | Ícone da extensão passa a ser o conjunto de blocos do protótipo (gerado); aviso único de primeira ativação que abre o painel | `dcd0961` |
-| Bandeja **Não agrupadas** sempre visível, com os ícones originais das extensões (sanitizados), uma linha por extensão e a opção "Lembrar de ocultar o ícone ao adicionar" | `2fcc506` |
+| Bandeja **Não agrupadas** sempre visível, com os ícones originais das extensões (sanitizados), uma linha por extensão (a opção de lembrar de ocultar o ícone foi removida depois, ver Ajustes do painel) | `2fcc506` |
 | Grupos padrão temáticos (Claude, Git, bancos de dados, contêineres e outros), depois substituídos, ver Alterado | `bae5b3f` |
 
 #### <img src="assets/icons/teal/refresh-cw.svg" width="18" align="top"> Alterado

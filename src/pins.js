@@ -6,11 +6,8 @@ const catalog = require('../media/pin-catalog');
 const { cleanText } = require('./config');
 
 const MAX_ROWS = 15;
-const MAX_STATUS_NAME = 30;
 // Commands the hover may run. Their arguments are plain strings resolved against the configuration.
 const TRUSTED_COMMANDS = ['groupedTools.runById', 'groupedTools.openGroup', 'groupedTools.manageGroup'];
-// Raster icons only: an SVG may not render inside a hover, so it falls back to a codicon.
-const IMAGE_ICON = /\.(png|jpe?g|webp)$/i;
 const MAX_HOVER_NAME = 100;
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
@@ -22,22 +19,21 @@ function escapeMarkdown(text) {
 
 function commandUri(command, args) { return `command:${command}?${encodeURIComponent(JSON.stringify(args))}`; }
 
-function statusName(name) {
-  const clean = cleanText(String(name).slice(0, MAX_STATUS_NAME * 4)).replace(/\$\(/g, '$ (');
-  return clean.length > MAX_STATUS_NAME ? `${clean.slice(0, MAX_STATUS_NAME - 1)}…` : clean;
-}
-function statusText(group, count) { return `$(${catalog.pinCodicon(group.icon)}) ${statusName(group.name)} (${count})`; }
+// Plain, one-line name for labels (control, zero-width and bidi characters removed, capped).
+const plainName = name => cleanText(String(name).slice(0, MAX_HOVER_NAME * 2)).slice(0, MAX_HOVER_NAME);
+// Status bar shows only the group icon and the item count; the name lives in the hover and in the accessible label.
+function statusText(group, count) { return `$(${catalog.pinCodicon(group.icon)}) ${count}`; }
 
-// Markdown source of the hover card. `iconOf(item)` returns an image URI string or null.
-function tooltipSource(group, items, iconOf = () => null) {
+// Markdown source of the hover card. Rows use codicons only: an image from a local path (file://) does not render in a hover,
+// and a `|` inside `![alt|width=..]` would split the table cell. Each installed item is a link that opens it.
+function tooltipSource(group, items) {
   const open = commandUri('groupedTools.openGroup', [group.id]);
   const lines = [`**${escapeMarkdown(group.name)}** · ${plural(items.length, 'extensão', 'extensões')}`, ''];
   if (!items.length) lines.push('Grupo vazio.', '');
   else {
     lines.push('| | |', '|:-:|---|');
     for (const item of items.slice(0, MAX_ROWS)) {
-      const uri = iconOf(item);
-      const icon = uri ? `![|width=16,height=16](${uri.replace(/[()\s]/g, c => encodeURIComponent(c))})` : (item.kind === 'command' ? '$(terminal)' : '$(extensions)');
+      const icon = item.kind === 'command' ? '$(terminal)' : '$(extensions)';
       const name = escapeMarkdown(item.name);
       const cell = item.installed === false
         ? `${name} *\\(não instalado\\)*`
@@ -47,22 +43,15 @@ function tooltipSource(group, items, iconOf = () => null) {
     lines.push('');
     if (items.length > MAX_ROWS) lines.push(`+${items.length - MAX_ROWS} ${items.length - MAX_ROWS === 1 ? 'extensão' : 'extensões'} · [Ver todas](${open})`, '');
   }
-  lines.push('---', '', `[Abrir no Ferramentas](${open}) | [Gerenciar grupo](${commandUri('groupedTools.manageGroup', [group.id])})`);
+  lines.push('---', '', `[Abrir no group tools](${open}) | [Gerenciar grupo](${commandUri('groupedTools.manageGroup', [group.id])})`);
   return lines.join('\n');
-}
-
-function extensionImage(vscode, extensionId) {
-  const extension = extensionId && vscode.extensions.getExtension ? vscode.extensions.getExtension(extensionId) : undefined;
-  const relative = extension && extension.packageJSON && extension.packageJSON.icon;
-  if (typeof relative !== 'string' || !IMAGE_ICON.test(relative) || relative.split(/[\\/]/).includes('..')) return null;
-  try { return String(vscode.Uri.joinPath(extension.extensionUri, relative)); } catch { return null; }
 }
 
 function tooltip(vscode, group, items) {
   const md = new vscode.MarkdownString('', true);
   md.isTrusted = { enabledCommands: TRUSTED_COMMANDS.slice() };
   md.supportHtml = false;
-  md.appendMarkdown(tooltipSource(group, items, item => (item.kind === 'extension' ? extensionImage(vscode, item.extensionId) : null)));
+  md.appendMarkdown(tooltipSource(group, items));
   return md;
 }
 
@@ -88,11 +77,11 @@ class PinManager {
         item = vscode.window.createStatusBarItem(`groupedTools.status.${group.id}`, vscode.StatusBarAlignment.Left, 90 - index);
         this.items.set(group.id, item);
       }
-      item.name = `Ferramentas: ${group.name}`;
+      item.name = `group tools: ${plainName(group.name)}`;
       item.text = statusText(group, group.items.length);
       item.tooltip = tooltip(vscode, group, group.items);
-      item.command = { command: 'groupedTools.openGroup', title: 'Abrir grupo no Ferramentas', arguments: [group.id] };
-      item.accessibilityInformation = { label: `${group.name}, ${plural(group.items.length, 'extensão', 'extensões')}. Abre o grupo no painel Ferramentas.`, role: 'button' };
+      item.command = { command: 'groupedTools.openGroup', title: 'Abrir grupo no group tools', arguments: [group.id] };
+      item.accessibilityInformation = { label: `${plainName(group.name)}, ${plural(group.items.length, 'extensão', 'extensões')}. Abre o grupo no painel group tools.`, role: 'button' };
       item.show();
     });
     for (const [id, item] of this.items) if (!seen.has(id)) { item.dispose(); this.items.delete(id); }
@@ -112,7 +101,7 @@ class PinRedirect {
 
   async resolveWebviewView(view) {
     view.webview.options = { enableScripts: false };
-    view.webview.html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src \'none\';"><title>Ferramentas</title></head><body><p>Abrindo o grupo no painel Ferramentas…</p></body></html>';
+    view.webview.html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src \'none\';"><title>group tools</title></head><body><p>Abrindo o grupo no painel group tools…</p></body></html>';
     const go = () => {
       if (this.busy || !view.visible) return;
       this.busy = true;
@@ -124,4 +113,4 @@ class PinRedirect {
   }
 }
 
-module.exports = { PinManager, PinRedirect, tooltip, tooltipSource, statusText, escapeMarkdown, commandUri, MAX_ROWS, TRUSTED_COMMANDS };
+module.exports = { plainName, PinManager, PinRedirect, tooltip, tooltipSource, statusText, escapeMarkdown, commandUri, MAX_ROWS, TRUSTED_COMMANDS };

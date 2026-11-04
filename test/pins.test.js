@@ -63,7 +63,7 @@ test('package.json: each pin container has one webview view hidden by its contex
     const views = pkg.contributes.views[container.id];
     assert.equal(views.length, 1);
     assert.deepEqual(views[0], { id: catalog.viewId(icon), name: container.title, type: 'webview', when: catalog.contextKey(icon) });
-    assert.match(container.title, /^Ferramentas · /);
+    assert.match(container.title, /^group tools · /);
   }
 });
 
@@ -79,7 +79,8 @@ test('package.json: settings schema accepts exactly the fields config.js reads',
   const schema = pkg.contributes.configuration.properties['groupedTools.groups'].items;
   assert.deepEqual(Object.keys(schema.properties).sort(), ['color', 'icon', 'id', 'items', 'name', 'pinned']);
   assert.equal(schema.additionalProperties, false);
-  assert.deepEqual(schema.properties.color.enum, require('../src/config').COLORS);
+  assert.deepEqual(schema.properties.color.anyOf[0].enum, require('../src/config').COLORS);
+  assert.equal(schema.properties.color.anyOf[1].pattern, require('../src/config').HEX_COLOR.source);
   assert.equal(schema.properties.pinned.type, 'boolean');
   assert.deepEqual(Object.keys(schema.properties.items.items.properties).sort(), ['args', 'command', 'extensionId', 'icon', 'name']);
   // the shipped defaults must satisfy the strict validator
@@ -108,8 +109,10 @@ test('escapeMarkdown: punctuation that could form links, icons or table cells is
 });
 
 test('statusText and commandUri', () => {
-  assert.equal(statusText({ name: 'Git', icon: 'git-branch' }, 3), '$(git-branch) Git (3)');
-  assert.equal(statusText({ name: 'x'.repeat(40), icon: 'unknown-icon' }, 1), `$(folder) ${'x'.repeat(29)}… (1)`);
+  // AJ-10: only the icon and the count; the name is never in the status text
+  assert.equal(statusText({ name: 'Git', icon: 'git-branch' }, 3), '$(git-branch) 3');
+  assert.equal(statusText({ name: 'x'.repeat(40), icon: 'unknown-icon' }, 1), '$(folder) 1');
+  assert.ok(!statusText({ name: 'Segredo $(zap)', icon: 'cloud' }, 7).includes('Segredo'));
   assert.equal(commandUri('a.b', ['x"y']), 'command:a.b?%5B%22x%5C%22y%22%5D');
 });
 
@@ -121,14 +124,13 @@ test('tooltipSource: empty group, exactly 15 rows without the "Ver todas" line',
   assert.equal((md.match(/^\| \$\(terminal\)/gm) || []).length, 15);
 });
 
-test('tools.svg: same Lucide icon as the prototype (blocks), generated, allowlisted', () => {
+test('tools.svg: Lucide boxes icon, generated, allowlisted', () => {
   const generated = build();
   const { checkBody } = require('../scripts/svg-allowlist');
   assert.equal(fs.readFileSync(path.join(root, 'media', 'tools.svg'), 'utf8'), generated.tools);
   assert.equal(generated.tools, build().tools);
-  assert.ok(generated.tools.includes(icons().toolIcons.blocks));
-  assert.deepEqual(checkBody(icons().toolIcons.blocks), []);
-  assert.match(fs.readFileSync(path.join(root, 'docs', 'design', 'redesenho', 'prototipo', 'prototipo.js'), 'utf8'), /ic\('blocks'\), 'Ferramentas agrupadas'/);
+  assert.ok(generated.tools.includes(icons().toolIcons.boxes));
+  assert.deepEqual(checkBody(icons().toolIcons.boxes), []);
   assert.equal(pkg.contributes.viewsContainers.activitybar[0].icon, 'media/tools.svg');
 });
 
@@ -143,9 +145,8 @@ test('pin menu text says both places; pinning creates both, unpinning removes bo
   assert.equal('pinned' in M.setPinned(pinned, 'a', false).groups[0], false);
 });
 
-test('panel: pin menu names both bars; the remember checkbox says the limitation', () => {
+test('panel: pin menu names both bars; the tray has no hide-the-icon option', () => {
   const view = fs.readFileSync(path.join(root, 'media', 'view.js'), 'utf8');
   assert.ok(view.includes('Fixar na barra de atividades e na barra de status'));
-  assert.ok(view.includes('O VS Code não permite que uma extensão oculte o ícone de outra'));
-  assert.ok(view.includes('Lembrar de ocultar o ícone ao adicionar'));
+  assert.ok(!/remember|Ocultar o ícone|Lembrar de ocultar|Copiar passo|hideHint|hideName/.test(view), 'hide-the-icon feature is gone');
 });

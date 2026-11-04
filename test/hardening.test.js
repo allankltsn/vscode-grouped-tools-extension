@@ -95,7 +95,9 @@ test('src and media agree on colors, neutral color, group limit and id format', 
   for (let i = 0; i < 50; i++) assert.match(M.newId('grp-'), config.ID_PATTERN);
   assert.ok(M.newId('it-').length <= 64);
   const pkg = require('../package.json').contributes.configuration.properties['groupedTools.groups'];
-  assert.deepEqual(pkg.items.properties.color.enum, config.COLORS);
+  assert.deepEqual(pkg.items.properties.color.anyOf[0].enum, config.COLORS);
+  assert.equal(pkg.items.properties.color.anyOf[1].pattern, config.HEX_COLOR.source);
+  assert.equal(M.HEX_COLOR.source, config.HEX_COLOR.source);
   assert.equal(pkg.maxItems, config.MAX_GROUPS);
   assert.equal(pkg.items.properties.name.maxLength, config.MAX_NAME);
   assert.equal(pkg.items.properties.items.items.properties.name.maxLength, config.MAX_ITEM_NAME);

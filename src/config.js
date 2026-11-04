@@ -19,9 +19,11 @@ function cleanText(text) {
   return String(text).replace(/\s+/g, ' ').replace(HIDDEN, '').trim();
 }
 
-// Fixed palette (classes g-1..g-10 in media/view.css). Anything else falls back to neutral (slate).
+// Fixed palette (classes g-1..g-10 in media/view.css) or a custom color in the single form '#rrggbb' (lowercase hex).
+// Anything else falls back to neutral (slate). Same rule as media/model.js (a test keeps them equal).
 const COLORS = Array.from({ length: 10 }, (_, i) => `g-${i + 1}`);
 const NEUTRAL_COLOR = 'g-10';
+const HEX_COLOR = /^#[0-9a-f]{6}$/;
 const ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 const EXTENSION_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]*\.[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const CONTAINER_PREFIX = 'workbench.view.extension.';
@@ -49,7 +51,7 @@ function extensionContainer(command) {
     ? command.slice(CONTAINER_PREFIX.length) : null;
 }
 
-function validColor(color) { return typeof color === 'string' && COLORS.includes(color); }
+function validColor(color) { return typeof color === 'string' && (COLORS.includes(color) || HEX_COLOR.test(color)); }
 function validId(id) { return typeof id === 'string' && ID_PATTERN.test(id); }
 function validExtensionId(id) { return typeof id === 'string' && EXTENSION_ID_PATTERN.test(id); }
 
@@ -146,4 +148,4 @@ function argsSize(args) { return Array.isArray(args) ? JSON.stringify(args).leng
 
 function pinnedGroups(groups) { return groups.filter(g => g.pinned === true); }
 
-module.exports = { readGroups, validateGroups, favoriteKey, favoriteHash, HIDDEN, extensionContainer, pinnedGroups, cleanText, isBlockedCommand, BLOCKED_COMMANDS, RECURSIVE_COMMAND, COLORS, NEUTRAL_COLOR, ID_PATTERN, MAX_GROUPS, MAX_NAME, MAX_ITEM_NAME, MAX_COMMAND, MAX_ARGS };
+module.exports = { readGroups, validateGroups, favoriteKey, favoriteHash, HIDDEN, extensionContainer, pinnedGroups, cleanText, isBlockedCommand, BLOCKED_COMMANDS, RECURSIVE_COMMAND, COLORS, NEUTRAL_COLOR, HEX_COLOR, validColor, ID_PATTERN, MAX_GROUPS, MAX_NAME, MAX_ITEM_NAME, MAX_COMMAND, MAX_ARGS };

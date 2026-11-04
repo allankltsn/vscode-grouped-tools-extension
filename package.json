@@ -1,8 +1,8 @@
 {
   "name": "grouped-tools",
-  "displayName": "Ferramentas agrupadas",
+  "displayName": "group tools",
   "description": "Painel compacto de ferramentas com grupos, busca, favoritos, organização por arrastar e grupos fixados na barra de atividades.",
-  "version": "0.0.4",
+  "version": "0.1.0",
   "publisher": "local",
   "repository": {
     "type": "git",
@@ -44,231 +44,231 @@
     "commands": [
       {
         "command": "groupedTools.configure",
-        "title": "Ferramentas: configurar grupos",
+        "title": "group tools: configurar grupos",
         "icon": "$(gear)"
       },
       {
         "command": "groupedTools.toggleFold",
-        "title": "Ferramentas: recolher ou expandir todos os grupos"
+        "title": "group tools: recolher ou expandir todos os grupos"
       },
       {
         "command": "groupedTools.openGroup",
-        "title": "Ferramentas: abrir grupo"
+        "title": "group tools: abrir grupo"
       },
       {
         "command": "groupedTools.manageGroup",
-        "title": "Ferramentas: gerenciar grupo"
+        "title": "group tools: gerenciar grupo"
       },
       {
         "command": "groupedTools.runById",
-        "title": "Ferramentas: abrir item de grupo fixado"
+        "title": "group tools: abrir item de grupo fixado"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
           "id": "groupedTools",
-          "title": "Ferramentas",
+          "title": "group tools",
           "icon": "media/tools.svg"
         },
         {
           "id": "groupedTools.pin.sparkles",
-          "title": "Ferramentas · IA",
+          "title": "group tools · IA",
           "icon": "media/pin/sparkles.svg"
         },
         {
           "id": "groupedTools.pin.bot",
-          "title": "Ferramentas · Robô",
+          "title": "group tools · Robô",
           "icon": "media/pin/bot.svg"
         },
         {
           "id": "groupedTools.pin.git-branch",
-          "title": "Ferramentas · Git",
+          "title": "group tools · Git",
           "icon": "media/pin/git-branch.svg"
         },
         {
           "id": "groupedTools.pin.git-pull-request",
-          "title": "Ferramentas · Pull requests",
+          "title": "group tools · Pull requests",
           "icon": "media/pin/git-pull-request.svg"
         },
         {
           "id": "groupedTools.pin.database",
-          "title": "Ferramentas · Banco de dados",
+          "title": "group tools · Banco de dados",
           "icon": "media/pin/database.svg"
         },
         {
           "id": "groupedTools.pin.server",
-          "title": "Ferramentas · Servidor",
+          "title": "group tools · Servidor",
           "icon": "media/pin/server.svg"
         },
         {
           "id": "groupedTools.pin.container",
-          "title": "Ferramentas · Contêiner",
+          "title": "group tools · Contêiner",
           "icon": "media/pin/container.svg"
         },
         {
           "id": "groupedTools.pin.box",
-          "title": "Ferramentas · Caixa",
+          "title": "group tools · Caixa",
           "icon": "media/pin/box.svg"
         },
         {
           "id": "groupedTools.pin.cloud",
-          "title": "Ferramentas · Nuvem",
+          "title": "group tools · Nuvem",
           "icon": "media/pin/cloud.svg"
         },
         {
           "id": "groupedTools.pin.terminal",
-          "title": "Ferramentas · Terminal",
+          "title": "group tools · Terminal",
           "icon": "media/pin/terminal.svg"
         },
         {
           "id": "groupedTools.pin.code",
-          "title": "Ferramentas · Código",
+          "title": "group tools · Código",
           "icon": "media/pin/code.svg"
         },
         {
           "id": "groupedTools.pin.folder",
-          "title": "Ferramentas · Pasta",
+          "title": "group tools · Pasta",
           "icon": "media/pin/folder.svg"
         },
         {
           "id": "groupedTools.pin.kanban",
-          "title": "Ferramentas · Quadro",
+          "title": "group tools · Quadro",
           "icon": "media/pin/kanban.svg"
         },
         {
           "id": "groupedTools.pin.workflow",
-          "title": "Ferramentas · Fluxo",
+          "title": "group tools · Fluxo",
           "icon": "media/pin/workflow.svg"
         },
         {
           "id": "groupedTools.pin.flask-conical",
-          "title": "Ferramentas · Laboratório",
+          "title": "group tools · Laboratório",
           "icon": "media/pin/flask-conical.svg"
         },
         {
           "id": "groupedTools.pin.bug",
-          "title": "Ferramentas · Depuração",
+          "title": "group tools · Depuração",
           "icon": "media/pin/bug.svg"
         },
         {
           "id": "groupedTools.pin.shield",
-          "title": "Ferramentas · Segurança",
+          "title": "group tools · Segurança",
           "icon": "media/pin/shield.svg"
         },
         {
           "id": "groupedTools.pin.rocket",
-          "title": "Ferramentas · Foguete",
+          "title": "group tools · Foguete",
           "icon": "media/pin/rocket.svg"
         },
         {
           "id": "groupedTools.pin.puzzle",
-          "title": "Ferramentas · Extensões",
+          "title": "group tools · Extensões",
           "icon": "media/pin/puzzle.svg"
         },
         {
           "id": "groupedTools.pin.settings",
-          "title": "Ferramentas · Configurações",
+          "title": "group tools · Configurações",
           "icon": "media/pin/settings.svg"
         },
         {
           "id": "groupedTools.pin.wrench",
-          "title": "Ferramentas · Ferramenta",
+          "title": "group tools · Ferramenta",
           "icon": "media/pin/wrench.svg"
         },
         {
           "id": "groupedTools.pin.package",
-          "title": "Ferramentas · Pacote",
+          "title": "group tools · Pacote",
           "icon": "media/pin/package.svg"
         },
         {
           "id": "groupedTools.pin.layers",
-          "title": "Ferramentas · Camadas",
+          "title": "group tools · Camadas",
           "icon": "media/pin/layers.svg"
         },
         {
           "id": "groupedTools.pin.palette",
-          "title": "Ferramentas · Paleta",
+          "title": "group tools · Paleta",
           "icon": "media/pin/palette.svg"
         },
         {
           "id": "groupedTools.pin.notebook-pen",
-          "title": "Ferramentas · Caderno",
+          "title": "group tools · Caderno",
           "icon": "media/pin/notebook-pen.svg"
         },
         {
           "id": "groupedTools.pin.calendar",
-          "title": "Ferramentas · Calendário",
+          "title": "group tools · Calendário",
           "icon": "media/pin/calendar.svg"
         },
         {
           "id": "groupedTools.pin.headphones",
-          "title": "Ferramentas · Música",
+          "title": "group tools · Música",
           "icon": "media/pin/headphones.svg"
         },
         {
           "id": "groupedTools.pin.mail",
-          "title": "Ferramentas · E-mail",
+          "title": "group tools · E-mail",
           "icon": "media/pin/mail.svg"
         },
         {
           "id": "groupedTools.pin.message-square",
-          "title": "Ferramentas · Mensagens",
+          "title": "group tools · Mensagens",
           "icon": "media/pin/message-square.svg"
         },
         {
           "id": "groupedTools.pin.chart-bar",
-          "title": "Ferramentas · Gráficos",
+          "title": "group tools · Gráficos",
           "icon": "media/pin/chart-bar.svg"
         },
         {
           "id": "groupedTools.pin.globe",
-          "title": "Ferramentas · Web",
+          "title": "group tools · Web",
           "icon": "media/pin/globe.svg"
         },
         {
           "id": "groupedTools.pin.network",
-          "title": "Ferramentas · Rede",
+          "title": "group tools · Rede",
           "icon": "media/pin/network.svg"
         },
         {
           "id": "groupedTools.pin.cpu",
-          "title": "Ferramentas · Processador",
+          "title": "group tools · Processador",
           "icon": "media/pin/cpu.svg"
         },
         {
           "id": "groupedTools.pin.brain",
-          "title": "Ferramentas · Cérebro",
+          "title": "group tools · Cérebro",
           "icon": "media/pin/brain.svg"
         },
         {
           "id": "groupedTools.pin.key",
-          "title": "Ferramentas · Chave",
+          "title": "group tools · Chave",
           "icon": "media/pin/key.svg"
         },
         {
           "id": "groupedTools.pin.star",
-          "title": "Ferramentas · Estrela",
+          "title": "group tools · Estrela",
           "icon": "media/pin/star.svg"
         },
         {
           "id": "groupedTools.pin.heart",
-          "title": "Ferramentas · Coração",
+          "title": "group tools · Coração",
           "icon": "media/pin/heart.svg"
         },
         {
           "id": "groupedTools.pin.bookmark",
-          "title": "Ferramentas · Marcador",
+          "title": "group tools · Marcador",
           "icon": "media/pin/bookmark.svg"
         },
         {
           "id": "groupedTools.pin.zap",
-          "title": "Ferramentas · Raio",
+          "title": "group tools · Raio",
           "icon": "media/pin/zap.svg"
         },
         {
           "id": "groupedTools.pin.flame",
-          "title": "Ferramentas · Chama",
+          "title": "group tools · Chama",
           "icon": "media/pin/flame.svg"
         }
       ]
@@ -277,7 +277,7 @@
       "groupedTools": [
         {
           "id": "groupedTools.view",
-          "name": "Ferramentas",
+          "name": "group tools",
           "type": "webview",
           "icon": "media/tools.svg"
         }
@@ -285,7 +285,7 @@
       "groupedTools.pin.sparkles": [
         {
           "id": "groupedTools.pin.sparkles.view",
-          "name": "Ferramentas · IA",
+          "name": "group tools · IA",
           "type": "webview",
           "when": "groupedTools.pinned.sparkles"
         }
@@ -293,7 +293,7 @@
       "groupedTools.pin.bot": [
         {
           "id": "groupedTools.pin.bot.view",
-          "name": "Ferramentas · Robô",
+          "name": "group tools · Robô",
           "type": "webview",
           "when": "groupedTools.pinned.bot"
         }
@@ -301,7 +301,7 @@
       "groupedTools.pin.git-branch": [
         {
           "id": "groupedTools.pin.git-branch.view",
-          "name": "Ferramentas · Git",
+          "name": "group tools · Git",
           "type": "webview",
           "when": "groupedTools.pinned.git_branch"
         }
@@ -309,7 +309,7 @@
       "groupedTools.pin.git-pull-request": [
         {
           "id": "groupedTools.pin.git-pull-request.view",
-          "name": "Ferramentas · Pull requests",
+          "name": "group tools · Pull requests",
           "type": "webview",
           "when": "groupedTools.pinned.git_pull_request"
         }
@@ -317,7 +317,7 @@
       "groupedTools.pin.database": [
         {
           "id": "groupedTools.pin.database.view",
-          "name": "Ferramentas · Banco de dados",
+          "name": "group tools · Banco de dados",
           "type": "webview",
           "when": "groupedTools.pinned.database"
         }
@@ -325,7 +325,7 @@
       "groupedTools.pin.server": [
         {
           "id": "groupedTools.pin.server.view",
-          "name": "Ferramentas · Servidor",
+          "name": "group tools · Servidor",
           "type": "webview",
           "when": "groupedTools.pinned.server"
         }
@@ -333,7 +333,7 @@
       "groupedTools.pin.container": [
         {
           "id": "groupedTools.pin.container.view",
-          "name": "Ferramentas · Contêiner",
+          "name": "group tools · Contêiner",
           "type": "webview",
           "when": "groupedTools.pinned.container"
         }
@@ -341,7 +341,7 @@
       "groupedTools.pin.box": [
         {
           "id": "groupedTools.pin.box.view",
-          "name": "Ferramentas · Caixa",
+          "name": "group tools · Caixa",
           "type": "webview",
           "when": "groupedTools.pinned.box"
         }
@@ -349,7 +349,7 @@
       "groupedTools.pin.cloud": [
         {
           "id": "groupedTools.pin.cloud.view",
-          "name": "Ferramentas · Nuvem",
+          "name": "group tools · Nuvem",
           "type": "webview",
           "when": "groupedTools.pinned.cloud"
         }
@@ -357,7 +357,7 @@
       "groupedTools.pin.terminal": [
         {
           "id": "groupedTools.pin.terminal.view",
-          "name": "Ferramentas · Terminal",
+          "name": "group tools · Terminal",
           "type": "webview",
           "when": "groupedTools.pinned.terminal"
         }
@@ -365,7 +365,7 @@
       "groupedTools.pin.code": [
         {
           "id": "groupedTools.pin.code.view",
-          "name": "Ferramentas · Código",
+          "name": "group tools · Código",
           "type": "webview",
           "when": "groupedTools.pinned.code"
         }
@@ -373,7 +373,7 @@
       "groupedTools.pin.folder": [
         {
           "id": "groupedTools.pin.folder.view",
-          "name": "Ferramentas · Pasta",
+          "name": "group tools · Pasta",
           "type": "webview",
           "when": "groupedTools.pinned.folder"
         }
@@ -381,7 +381,7 @@
       "groupedTools.pin.kanban": [
         {
           "id": "groupedTools.pin.kanban.view",
-          "name": "Ferramentas · Quadro",
+          "name": "group tools · Quadro",
           "type": "webview",
           "when": "groupedTools.pinned.kanban"
         }
@@ -389,7 +389,7 @@
       "groupedTools.pin.workflow": [
         {
           "id": "groupedTools.pin.workflow.view",
-          "name": "Ferramentas · Fluxo",
+          "name": "group tools · Fluxo",
           "type": "webview",
           "when": "groupedTools.pinned.workflow"
         }
@@ -397,7 +397,7 @@
       "groupedTools.pin.flask-conical": [
         {
           "id": "groupedTools.pin.flask-conical.view",
-          "name": "Ferramentas · Laboratório",
+          "name": "group tools · Laboratório",
           "type": "webview",
           "when": "groupedTools.pinned.flask_conical"
         }
@@ -405,7 +405,7 @@
       "groupedTools.pin.bug": [
         {
           "id": "groupedTools.pin.bug.view",
-          "name": "Ferramentas · Depuração",
+          "name": "group tools · Depuração",
           "type": "webview",
           "when": "groupedTools.pinned.bug"
         }
@@ -413,7 +413,7 @@
       "groupedTools.pin.shield": [
         {
           "id": "groupedTools.pin.shield.view",
-          "name": "Ferramentas · Segurança",
+          "name": "group tools · Segurança",
           "type": "webview",
           "when": "groupedTools.pinned.shield"
         }
@@ -421,7 +421,7 @@
       "groupedTools.pin.rocket": [
         {
           "id": "groupedTools.pin.rocket.view",
-          "name": "Ferramentas · Foguete",
+          "name": "group tools · Foguete",
           "type": "webview",
           "when": "groupedTools.pinned.rocket"
         }
@@ -429,7 +429,7 @@
       "groupedTools.pin.puzzle": [
         {
           "id": "groupedTools.pin.puzzle.view",
-          "name": "Ferramentas · Extensões",
+          "name": "group tools · Extensões",
           "type": "webview",
           "when": "groupedTools.pinned.puzzle"
         }
@@ -437,7 +437,7 @@
       "groupedTools.pin.settings": [
         {
           "id": "groupedTools.pin.settings.view",
-          "name": "Ferramentas · Configurações",
+          "name": "group tools · Configurações",
           "type": "webview",
           "when": "groupedTools.pinned.settings"
         }
@@ -445,7 +445,7 @@
       "groupedTools.pin.wrench": [
         {
           "id": "groupedTools.pin.wrench.view",
-          "name": "Ferramentas · Ferramenta",
+          "name": "group tools · Ferramenta",
           "type": "webview",
           "when": "groupedTools.pinned.wrench"
         }
@@ -453,7 +453,7 @@
       "groupedTools.pin.package": [
         {
           "id": "groupedTools.pin.package.view",
-          "name": "Ferramentas · Pacote",
+          "name": "group tools · Pacote",
           "type": "webview",
           "when": "groupedTools.pinned.package"
         }
@@ -461,7 +461,7 @@
       "groupedTools.pin.layers": [
         {
           "id": "groupedTools.pin.layers.view",
-          "name": "Ferramentas · Camadas",
+          "name": "group tools · Camadas",
           "type": "webview",
           "when": "groupedTools.pinned.layers"
         }
@@ -469,7 +469,7 @@
       "groupedTools.pin.palette": [
         {
           "id": "groupedTools.pin.palette.view",
-          "name": "Ferramentas · Paleta",
+          "name": "group tools · Paleta",
           "type": "webview",
           "when": "groupedTools.pinned.palette"
         }
@@ -477,7 +477,7 @@
       "groupedTools.pin.notebook-pen": [
         {
           "id": "groupedTools.pin.notebook-pen.view",
-          "name": "Ferramentas · Caderno",
+          "name": "group tools · Caderno",
           "type": "webview",
           "when": "groupedTools.pinned.notebook_pen"
         }
@@ -485,7 +485,7 @@
       "groupedTools.pin.calendar": [
         {
           "id": "groupedTools.pin.calendar.view",
-          "name": "Ferramentas · Calendário",
+          "name": "group tools · Calendário",
           "type": "webview",
           "when": "groupedTools.pinned.calendar"
         }
@@ -493,7 +493,7 @@
       "groupedTools.pin.headphones": [
         {
           "id": "groupedTools.pin.headphones.view",
-          "name": "Ferramentas · Música",
+          "name": "group tools · Música",
           "type": "webview",
           "when": "groupedTools.pinned.headphones"
         }
@@ -501,7 +501,7 @@
       "groupedTools.pin.mail": [
         {
           "id": "groupedTools.pin.mail.view",
-          "name": "Ferramentas · E-mail",
+          "name": "group tools · E-mail",
           "type": "webview",
           "when": "groupedTools.pinned.mail"
         }
@@ -509,7 +509,7 @@
       "groupedTools.pin.message-square": [
         {
           "id": "groupedTools.pin.message-square.view",
-          "name": "Ferramentas · Mensagens",
+          "name": "group tools · Mensagens",
           "type": "webview",
           "when": "groupedTools.pinned.message_square"
         }
@@ -517,7 +517,7 @@
       "groupedTools.pin.chart-bar": [
         {
           "id": "groupedTools.pin.chart-bar.view",
-          "name": "Ferramentas · Gráficos",
+          "name": "group tools · Gráficos",
           "type": "webview",
           "when": "groupedTools.pinned.chart_bar"
         }
@@ -525,7 +525,7 @@
       "groupedTools.pin.globe": [
         {
           "id": "groupedTools.pin.globe.view",
-          "name": "Ferramentas · Web",
+          "name": "group tools · Web",
           "type": "webview",
           "when": "groupedTools.pinned.globe"
         }
@@ -533,7 +533,7 @@
       "groupedTools.pin.network": [
         {
           "id": "groupedTools.pin.network.view",
-          "name": "Ferramentas · Rede",
+          "name": "group tools · Rede",
           "type": "webview",
           "when": "groupedTools.pinned.network"
         }
@@ -541,7 +541,7 @@
       "groupedTools.pin.cpu": [
         {
           "id": "groupedTools.pin.cpu.view",
-          "name": "Ferramentas · Processador",
+          "name": "group tools · Processador",
           "type": "webview",
           "when": "groupedTools.pinned.cpu"
         }
@@ -549,7 +549,7 @@
       "groupedTools.pin.brain": [
         {
           "id": "groupedTools.pin.brain.view",
-          "name": "Ferramentas · Cérebro",
+          "name": "group tools · Cérebro",
           "type": "webview",
           "when": "groupedTools.pinned.brain"
         }
@@ -557,7 +557,7 @@
       "groupedTools.pin.key": [
         {
           "id": "groupedTools.pin.key.view",
-          "name": "Ferramentas · Chave",
+          "name": "group tools · Chave",
           "type": "webview",
           "when": "groupedTools.pinned.key"
         }
@@ -565,7 +565,7 @@
       "groupedTools.pin.star": [
         {
           "id": "groupedTools.pin.star.view",
-          "name": "Ferramentas · Estrela",
+          "name": "group tools · Estrela",
           "type": "webview",
           "when": "groupedTools.pinned.star"
         }
@@ -573,7 +573,7 @@
       "groupedTools.pin.heart": [
         {
           "id": "groupedTools.pin.heart.view",
-          "name": "Ferramentas · Coração",
+          "name": "group tools · Coração",
           "type": "webview",
           "when": "groupedTools.pinned.heart"
         }
@@ -581,7 +581,7 @@
       "groupedTools.pin.bookmark": [
         {
           "id": "groupedTools.pin.bookmark.view",
-          "name": "Ferramentas · Marcador",
+          "name": "group tools · Marcador",
           "type": "webview",
           "when": "groupedTools.pinned.bookmark"
         }
@@ -589,7 +589,7 @@
       "groupedTools.pin.zap": [
         {
           "id": "groupedTools.pin.zap.view",
-          "name": "Ferramentas · Raio",
+          "name": "group tools · Raio",
           "type": "webview",
           "when": "groupedTools.pinned.zap"
         }
@@ -597,7 +597,7 @@
       "groupedTools.pin.flame": [
         {
           "id": "groupedTools.pin.flame.view",
-          "name": "Ferramentas · Chama",
+          "name": "group tools · Chama",
           "type": "webview",
           "when": "groupedTools.pinned.flame"
         }
@@ -627,7 +627,7 @@
       ]
     },
     "configuration": {
-      "title": "Ferramentas agrupadas",
+      "title": "group tools",
       "properties": {
         "groupedTools.groups": {
           "type": "array",
@@ -676,20 +676,28 @@
                 "description": "Nome de um ícone Lucide (ex.: database)."
               },
               "color": {
-                "type": "string",
-                "enum": [
-                  "g-1",
-                  "g-2",
-                  "g-3",
-                  "g-4",
-                  "g-5",
-                  "g-6",
-                  "g-7",
-                  "g-8",
-                  "g-9",
-                  "g-10"
-                ],
-                "description": "Cor do grupo na paleta fixa g-1..g-10."
+                "description": "Cor do grupo: paleta fixa g-1..g-10 ou uma cor própria no formato #rrggbb (minúsculas).",
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "g-1",
+                      "g-2",
+                      "g-3",
+                      "g-4",
+                      "g-5",
+                      "g-6",
+                      "g-7",
+                      "g-8",
+                      "g-9",
+                      "g-10"
+                    ]
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^#[0-9a-f]{6}$"
+                  }
+                ]
               },
               "pinned": {
                 "type": "boolean",

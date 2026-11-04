@@ -12,7 +12,7 @@ async function welcome(context) {
   if (!state || state.get('welcomed')) return;
   await state.update('welcomed', true); // before anything else: at most once, even if the next steps fail
   await vscode.commands.executeCommand('workbench.view.extension.groupedTools');
-  vscode.window.showInformationMessage('Ferramentas está na barra de atividades. Arraste o ícone para onde quiser.', 'Entendi');
+  vscode.window.showInformationMessage('group tools está na barra de atividades. Arraste o ícone para onde quiser.', 'Entendi');
 }
 
 function activate(context) {
@@ -30,7 +30,7 @@ function activate(context) {
     vscode.workspace.onDidGrantWorkspaceTrust(update),
     vscode.commands.registerCommand('groupedTools.configure', () => provider.openEditor()),
     vscode.commands.registerCommand('groupedTools.openGroup', groupId => provider.openGroup(groupId)),
-    vscode.commands.registerCommand('groupedTools.manageGroup', groupId => provider.openGroup(groupId, { organize: true })),
+    vscode.commands.registerCommand('groupedTools.manageGroup', groupId => provider.openGroup(groupId)),
     vscode.commands.registerCommand('groupedTools.runById', (groupId, itemId) => provider.runPinnedItem(groupId, itemId)),
     vscode.commands.registerCommand('groupedTools.toggleFold', () => provider.toggleFold()),
     { dispose: () => pins.dispose() }

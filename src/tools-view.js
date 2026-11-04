@@ -320,10 +320,10 @@ class ToolsView {
   }
 
   // Opens the panel on a pinned group: every other group collapsed, the group scrolled to, highlighted and focused.
-  async openGroup(groupId, { organize = false, missing = false } = {}) {
+  async openGroup(groupId, { missing = false } = {}) {
     if (groupId !== undefined && (typeof groupId !== 'string' || !GROUP_ID.test(groupId))) return;
     this.markNavigating();
-    this.navigate({ type: 'focusGroup', collapseOthers: true, ...(groupId ? { groupId } : {}), ...(organize ? { organize: true } : {}), ...(missing ? { missing: true } : {}) });
+    this.navigate({ type: 'focusGroup', collapseOthers: true, ...(groupId ? { groupId } : {}), ...(missing ? { missing: true } : {}) });
     await vscode.commands.executeCommand('groupedTools.view.focus');
   }
 

