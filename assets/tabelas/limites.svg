@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 378" width="920" height="378" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" role="img" aria-label="Limites da configuração: 8 linhas, colunas Item, Limite">
+<rect width="920" height="378" rx="10" fill="#0b0f17"/>
+<rect x="0.5" y="0.5" width="919" height="377" rx="10" fill="#111827" stroke="#1f2937"/>
+<text x="16" y="24" font-size="14" font-weight="700" fill="#e6edf3">Limites da configuração</text>
+<rect x="16" y="31" width="28" height="2" rx="1" fill="#2dd4bf"/>
+<rect x="1" y="36" width="918" height="40" fill="#0b0f17"/>
+<text x="16" y="61" font-size="11" font-weight="700" letter-spacing="1" fill="#8b96a8">ITEM</text>
+<text x="317" y="61" font-size="11" font-weight="700" letter-spacing="1" fill="#8b96a8">LIMITE</text>
+<line x1="0" y1="76" x2="920" y2="76" stroke="#2dd4bf" stroke-opacity="0.5"/>
+<text x="16" y="100" xml:space="preserve"><tspan fill="#c9d4e3">Grupos</tspan></text>
+<text x="317" y="100" xml:space="preserve"><tspan fill="#c9d4e3">100</tspan></text>
+<line x1="16" y1="113" x2="904" y2="113" stroke="#1f2937"/>
+<rect x="1" y="113" width="918" height="37" fill="#0f1623"/>
+<text x="16" y="137" xml:space="preserve"><tspan fill="#c9d4e3">Nome </tspan><tspan fill="#c9d4e3">de </tspan><tspan fill="#c9d4e3">grupo </tspan><tspan fill="#c9d4e3">ou </tspan><tspan fill="#c9d4e3">de </tspan><tspan fill="#c9d4e3">item</tspan></text>
+<text x="317" y="137" xml:space="preserve"><tspan fill="#c9d4e3">100 </tspan><tspan fill="#c9d4e3">caracteres</tspan></text>
+<line x1="16" y1="150" x2="904" y2="150" stroke="#1f2937"/>
+<text x="16" y="174" xml:space="preserve"><tspan fill="#c9d4e3">Comando </tspan><tspan fill="#c9d4e3">de </tspan><tspan fill="#c9d4e3">um </tspan><tspan fill="#c9d4e3">item</tspan></text>
+<text x="317" y="174" xml:space="preserve"><tspan fill="#c9d4e3">200 </tspan><tspan fill="#c9d4e3">caracteres</tspan></text>
+<line x1="16" y1="187" x2="904" y2="187" stroke="#1f2937"/>
+<rect x="1" y="187" width="918" height="37" fill="#0f1623"/>
+<text x="16" y="211" xml:space="preserve"><tspan fill="#c9d4e3">Favoritos </tspan><tspan fill="#c9d4e3">por </tspan><tspan fill="#c9d4e3">workspace</tspan></text>
+<text x="317" y="211" xml:space="preserve"><tspan fill="#c9d4e3">500</tspan></text>
+<line x1="16" y1="224" x2="904" y2="224" stroke="#1f2937"/>
+<text x="16" y="248" xml:space="preserve"><tspan fill="#c9d4e3">Aprovações </tspan><tspan fill="#c9d4e3">guardadas</tspan></text>
+<text x="317" y="248" xml:space="preserve"><tspan fill="#c9d4e3">200</tspan></text>
+<line x1="16" y1="261" x2="904" y2="261" stroke="#1f2937"/>
+<rect x="1" y="261" width="918" height="37" fill="#0f1623"/>
+<text x="16" y="285" xml:space="preserve"><tspan fill="#c9d4e3">Argumentos </tspan><tspan fill="#c9d4e3">acima </tspan><tspan fill="#c9d4e3">de </tspan><tspan fill="#c9d4e3">1500 </tspan><tspan fill="#c9d4e3">caracteres</tspan></text>
+<text x="317" y="285" xml:space="preserve"><tspan fill="#c9d4e3">executam </tspan><tspan fill="#c9d4e3">uma </tspan><tspan fill="#c9d4e3">vez, </tspan><tspan fill="#c9d4e3">sem </tspan><tspan fill="#c9d4e3">lembrar</tspan></text>
+<line x1="16" y1="298" x2="904" y2="298" stroke="#1f2937"/>
+<text x="16" y="322" xml:space="preserve"><tspan fill="#c9d4e3">Ícones </tspan><tspan fill="#c9d4e3">fixáveis</tspan></text>
+<text x="317" y="322" xml:space="preserve"><tspan fill="#c9d4e3">40, </tspan><tspan fill="#c9d4e3">um </tspan><tspan fill="#c9d4e3">grupo </tspan><tspan fill="#c9d4e3">por </tspan><tspan fill="#c9d4e3">ícone</tspan></text>
+<line x1="16" y1="335" x2="904" y2="335" stroke="#1f2937"/>
+<rect x="1" y="335" width="918" height="37" fill="#0f1623"/>
+<text x="16" y="359" xml:space="preserve"><tspan fill="#c9d4e3">Ícones </tspan><tspan fill="#c9d4e3">no </tspan><tspan fill="#c9d4e3">seletor</tspan></text>
+<text x="317" y="359" xml:space="preserve"><tspan fill="#c9d4e3">2015 </tspan><tspan fill="#c9d4e3">do </tspan><tspan fill="#c9d4e3">Lucide </tspan><tspan fill="#c9d4e3">1.66.0, </tspan><tspan fill="#c9d4e3">60 </tspan><tspan fill="#c9d4e3">por </tspan><tspan fill="#c9d4e3">vez</tspan></text>
+</svg>
