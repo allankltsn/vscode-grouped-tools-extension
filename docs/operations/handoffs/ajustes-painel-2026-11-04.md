@@ -32,3 +32,10 @@ Não verificado nesta rodada: temas reais do VS Code, leitor de tela, colagem po
 `npm run check` limpo; `npm test` 131/131 (saiu o teste de `hideName`/`hideHint`). Nada instalado, sem commit.
 Removido: (1) checkbox e rótulo da bandeja com seu tooltip (media/view.js); (2) estado `S.remember` e a persistência em `setState`, e o `case 'remember'`; (3) o toast com o passo manual, o botão "Copiar passo", `copyText` e o campo `hint` do retorno de `placeItem`/`finish` (o aviso agora é só "X adicionado a Y" com Desfazer); (4) `hideName`/`hideHint` em media/model.js e no export; (5) CSS `.remember` e `.remember input` (media/view.css); (6) testes de `hideName`/`hideHint` (test/model.test.js, test/provider.test.js) e a asserção do tooltip em test/pins.test.js, trocada por uma que falha se `remember|Ocultar o ícone|Lembrar de ocultar|Copiar passo|hideHint|hideName` voltar a aparecer em view.js; (7) CHANGELOG: entrada da bandeja reescrita (só adiciona ao grupo, não promete ocultação) e a menção antiga ajustada.
 Grep de código morto: `grep -rnE "remember|hideHint|hideName|copyText|Copiar passo|r\.hint|Ocultar o ícone|Lembrar de ocultar" media src test` só acha usos sem relação: o fluxo "Executar e lembrar" de aprovação de comandos em src/tools-view.js e seus testes de provider, e a própria asserção negativa de test/pins.test.js. Nenhum resto em media/*.js, view.css ou view.html. Não verificado: render real do painel após a remoção (só testes e checagem de sintaxe).
+
+---
+# Aceite humano (04/11/2026)
+Versão aceita: 0.1.1 (commit 52f1b9b, tags v0.1.0 e v0.1.1, main publicado). Instalada a partir de grouped-tools-0.1.1.vsix.
+O usuário validou no VS Code real: arraste, paleta em painel estreito, hover, barra de status e temas. Resultado informado: todos ok.
+Isso cobre os itens que nenhum gate verificou (render real). Não cobre leitor de tela nem o salvamento real no host, que seguem sem verificação registrada.
+Pendências aceitas como dívida: REV-10 e QA-10 (nome só de pontuação), QA-9 (surrogate solitário), REV-14 (frase do CHANGELOG sobre tag "só localmente").
