@@ -27,3 +27,13 @@ QA-4 [Low] AJ-6: colar "300" em RGB vira "30, 0" (dígito que passaria de 255 fe
 ## Limites (não verificado)
 Não reexecutei arraste nativo (AJ-1) nem layout em 200/280/400 px e temas (AJ-4) em navegador; dependo da evidência CDP/harness do autor, sem confirmação independente. Temas reais do VS Code, leitor de tela e save real ao host sem cobertura. Pendências do autor: README/docs ainda com termos antigos (fora de escopo).
 Próximo dono: frontend-senior (QA-1), depois QA reconfirma; security e revisão técnica no snapshot corrigido.
+
+---
+# Follow-ups 0.1.1 (HEAD bc3ec98; diff d5f4e93e06d76efa; test/followups.test.js sha256 409767e84aee26d0)
+Persistido pelo principal a partir do relatório do QA. Veredito: APROVADO sem bloqueios. `npm run check` limpo; `npm test` 133/133 em 3 execuções seguidas.
+- QA-7 fecha: vazio, espaços, NBSP, ideográfico, zero-width, bidi, U+2028/9, tag chars e controle caem em "Novo grupo"/"Extensão sem nome"; nomes com markdown/pipe misturados a invisíveis saem escapados, 2 células por linha, sem link injetado.
+- SEC-2 fecha: 64 processado, 65 rejeitado; 100k caracteres em <0,03 ms; colagens rgb()/hsl() no limite corretas.
+- REV-4: testado por mutação em cópia temporária; lentidão constante de 120 ms faz o teste falhar (mediana não mascara regressão sistemática). Backtracking catastrófico `(a+)+$` com 28 caracteres trava (falha por travamento, não por assert, pois o corte de 1 s só vale após o retorno da função).
+- QA-9 [Low, ACEITO pelo principal como dívida]: nome com surrogate solitário (`"\ud800"`) sobrevive à limpeza e `slice(0,100)` pode partir par surrogate; só estético, sem injeção.
+- QA-10 [Low, ACEITO, igual ao REV-10]: nome só de pontuação não cai no fallback; aparece escapado.
+- Não verificado: render real do hover no VS Code.

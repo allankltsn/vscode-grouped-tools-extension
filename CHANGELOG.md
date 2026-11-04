@@ -1,6 +1,6 @@
 # <img src="assets/icons/teal/history.svg" width="26" align="top"> Changelog
 
-Todas as mudanças relevantes de **Ferramentas agrupadas** ficam neste arquivo. O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e a numeração segue o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
+Todas as mudanças relevantes de **group tools** ficam neste arquivo. O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e a numeração segue o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 > [!NOTE]
 > Antes da 0.1.0 o repositório não tinha nenhuma tag git e o `package.json` estava em `0.0.4`. As versões 0.0.2, 0.0.3 e 0.0.4 existem só como arquivos `.vsix` locais (ignorados no git); as datas e o conteúdo delas vêm da inspeção desses arquivos. As datas vêm da data de modificação dos arquivos: só o dia 08/10/2026 é confiável, não a ordem entre as três versões (os arquivos internos da 0.0.2 são mais recentes que os da 0.0.4). Onde o git não mostra a informação, o texto diz "sem registro".
@@ -24,6 +24,23 @@ Todas as mudanças relevantes de **Ferramentas agrupadas** ficam neste arquivo. 
 <img alt="Gráfico animado de duas linhas, commit a commit: testes de 1 para 117 e linhas de código de 314 para 3176, entre 19 e 31 de outubro de 2026, com salto em 31 de outubro" src="assets/graficos/evolucao.svg" width="100%">
 
 Medido com `git show` em cada um dos 29 commits sem merges: contagem de linhas que começam por `test(` em `test/*.test.js` e `wc -l` de `src/`, `extension.js` (raiz, até 24/10), `media/` (view.html, view.css, view.js, model, sync, svg-safe, pin-catalog) e `scripts/`, sem arquivos gerados. O histórico tem 33 commits no total, contando 4 merges.
+
+---
+
+## <img src="assets/icons/teal/wrench.svg" width="22" align="top"> 0.1.1 (04/11/2026)
+
+> [!NOTE]
+> **Versão 0.1.1 (PATCH).** Só correções de acompanhamento da 0.1.0, sem mudança de comportamento previsto.
+
+#### <img src="assets/icons/teal/wrench.svg" width="18" align="top"> Corrigido
+
+- **Hover do grupo fixado**: nome de grupo ou de extensão vazio, só com espaços ou só com caracteres invisíveis ou de controle gerava link vazio, célula só com "(não instalado)" e cabeçalho `****`. Agora usa "Novo grupo" e "Extensão sem nome", e a linha mantém duas células, escapadas.
+- **Cor por código**: `parseColorInput` rejeita de imediato entradas com mais de 64 caracteres, sem rodar as expressões regulares, o que limita o custo de entradas hostis.
+
+#### <img src="assets/icons/teal/flask-conical.svg" width="18" align="top"> Testes
+
+- O teste de tempo SEC-19 de `test/ext-icons-sec.test.js` usa a mediana de 5 execuções, para não oscilar sob carga, e continua detectando backtracking catastrófico.
+- Novos testes de regressão em `test/followups.test.js`.
 
 ---
 

@@ -1,9 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="Ferramentas agrupadas">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="group tools">
 <defs><clipPath id="tag"><rect x="72" y="146" width="0" height="40"><animate attributeName="width" to="720" begin="1.0s" dur="1.0s" fill="freeze" calcMode="spline" keySplines="0.2 0 0.2 1"/></rect></clipPath><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#2dd4bf"/><stop offset="1" stop-color="#3b82f6"/></linearGradient></defs>
 <rect width="1200" height="300" fill="#0b0f17"/>
 <g stroke="#1f2937" stroke-width="1" opacity="0.6"><path d="M0 240 H1200"/><path d="M0 60 H1200"/></g>
 <rect x="72" y="60" width="0" height="4" rx="2" fill="url(#g)"><animate attributeName="width" to="120" begin="0.2s" dur="0.6s" fill="freeze"/></rect>
-<text x="72" y="118" font-size="56" font-weight="700" fill="#e6edf3" letter-spacing="-1" opacity="0">Ferramentas agrupadas<animate attributeName="opacity" to="1" begin="0.4s" dur="0.5s" fill="freeze"/></text>
+<text x="72" y="118" font-size="56" font-weight="700" fill="#e6edf3" letter-spacing="-1" opacity="0">group tools<animate attributeName="opacity" to="1" begin="0.4s" dur="0.5s" fill="freeze"/></text>
 <g clip-path="url(#tag)"><text x="72" y="176" font-size="21.98" fill="#8b96a8"><tspan>Atalhos de extensões em grupos,</tspan> <tspan fill="#2dd4bf" font-weight="600">fixados na barra de atividades</tspan></text></g>
 <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#8b96a8"><g opacity="0"><animate attributeName="opacity" to="1" begin="2.1s" dur="0.4s" fill="freeze"/><rect x="72" y="204" width="138.8" height="26" rx="13" fill="none" stroke="#3b82f6" stroke-opacity="0.6"/><circle cx="87" cy="217" r="3.5" fill="#3b82f6"/><text x="147.4" y="221" text-anchor="middle">VS Code ^1.85</text></g><g opacity="0"><animate attributeName="opacity" to="1" begin="2.3s" dur="0.4s" fill="freeze"/><rect x="220.8" y="204" width="116" height="26" rx="13" fill="none" stroke="#f59e0b" stroke-opacity="0.6"/><circle cx="235.8" cy="217" r="3.5" fill="#f59e0b"/><text x="284.8" y="221" text-anchor="middle">JavaScript</text></g><g opacity="0"><animate attributeName="opacity" to="1" begin="2.5s" dur="0.4s" fill="freeze"/><rect x="346.8" y="204" width="85.6" height="26" rx="13" fill="none" stroke="#2dd4bf" stroke-opacity="0.6"/><circle cx="361.8" cy="217" r="3.5" fill="#2dd4bf"/><text x="395.6" y="221" text-anchor="middle">Lucide</text></g><g opacity="0"><animate attributeName="opacity" to="1" begin="2.7s" dur="0.4s" fill="freeze"/><rect x="442.4" y="204" width="123.6" height="26" rx="13" fill="none" stroke="#4ade80" stroke-opacity="0.6"/><circle cx="457.4" cy="217" r="3.5" fill="#4ade80"/><text x="510.2" y="221" text-anchor="middle">node --test</text></g></g>
 <g opacity="0"><animate attributeName="opacity" to="1" begin="0.6s" dur="0.5s" fill="freeze"/><g transform="translate(828,52)">
@@ -41,7 +41,7 @@
 <text x="312" y="162" font-size="10" fill="#8b96a8" text-anchor="end" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">2</text>
 </g>
 <circle cx="14" cy="185" r="3.5" fill="#2dd4bf"><animate attributeName="opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite"/></circle>
-<text x="24" y="189" font-size="10" fill="#2dd4bf" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">Qualidade e testes (2)</text>
+<text x="24" y="189" font-size="10" fill="#2dd4bf" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">2</text>
 <text x="324" y="189" font-size="10" fill="#4b5563" text-anchor="end" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">exemplo ilustrativo</text>
 </g></g>
 </svg>

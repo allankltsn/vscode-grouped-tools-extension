@@ -2,7 +2,7 @@
   "name": "grouped-tools",
   "displayName": "group tools",
   "description": "Painel compacto de ferramentas com grupos, busca, favoritos, organização por arrastar e grupos fixados na barra de atividades.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "local",
   "repository": {
     "type": "git",

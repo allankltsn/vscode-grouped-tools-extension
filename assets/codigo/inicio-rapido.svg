@@ -12,5 +12,5 @@
 <text x="20" y="92" font-size="14" xml:space="preserve" opacity="1"><tspan fill="#60a5fa">cd vscode-grouped-tools-extension</tspan></text>
 <text x="20" y="114" font-size="14" xml:space="preserve" opacity="1"><tspan fill="#60a5fa">code .</tspan></text>
 <text x="20" y="136" font-size="14" xml:space="preserve" opacity="1"><tspan fill="#4b5563"># no VS Code: F5 e escolha "Testar extensão"</tspan></text>
-<text x="20" y="158" font-size="14" xml:space="preserve" opacity="1"><tspan fill="#4b5563"># na janela Extension Development Host, clique em Ferramentas</tspan></text>
+<text x="20" y="158" font-size="14" xml:space="preserve" opacity="1"><tspan fill="#4b5563"># na janela Extension Development Host, clique em group tools</tspan></text>
 </svg>

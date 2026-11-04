@@ -97,7 +97,10 @@
   function parseColorInput(format, text) {
     if (!hasFormat(format)) return { ok: false, error: 'Formato de cor desconhecido.' };
     const spec = COLOR_FORMATS[format];
-    const value = String(text == null ? '' : text).trim();
+    // Longer than any valid value (the input field allows 20): rejected before the regexes run, so hostile input stays cheap.
+    const raw = String(text == null ? '' : text);
+    if (raw.length > 64) return { ok: false, error: spec.error };
+    const value = raw.trim();
     if (format === 'hex') {
       const m = /^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.exec(value);
       if (!m) return { ok: false, error: spec.error };

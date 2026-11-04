@@ -5,9 +5,9 @@ Nada abaixo foi executado em um VS Code real: a sessão de implementação só r
 Preparação: abrir a pasta no VS Code, F5 (Extension Development Host). Abra uma pasta de projeto na janela de teste. Largura da barra lateral: 220, 300 e 420 px. Temas: Dark+, Light+, alto contraste.
 
 ## A. Painel e organização (UX-11)
-1. Abrir Ferramentas: grupos padrão, contagens, selo "Não instalado" no que falta. Sem erros no DevTools (Ajuda > Alternar ferramentas do desenvolvedor, console) e sem violação de CSP.
-2. Organizar: arrastar item entre grupos e reordenar grupos com o mouse (DnD HTML5 no webview), soltar fora cancela. Repetir só com teclado (Espaço, setas, Esc) e com ⋯ > Mover para….
-3. Cor e ícone: trocar cor; no seletor buscar "git", "banco", "nuvem"; "Mostrar mais"; navegar por setas.
+1. Abrir group tools (nome exibido; o nome técnico é `grouped-tools`): grupos padrão, contagens, selo "Não instalado" no que falta. Sem erros no DevTools (Ajuda > Alternar ferramentas do desenvolvedor, console) e sem violação de CSP.
+2. Organizar (sempre ativo, não há botão nem modo; cada mudança é salva na hora): arrastar item entre grupos e reordenar grupos com o mouse (DnD HTML5 no webview), soltar fora cancela. Repetir só com teclado (Espaço, setas, Esc) e com ⋯ > Mover para….
+3. Cor e ícone: trocar cor; criar um grupo novo e conferir que nasce com cor aleatória; abrir o campo de cor própria e testar HEX (`#RGB`, `#RRGGBB`), RGB e HSL (máscara, prévia, erro em português, Aplicar só com valor válido, cor guardada como `#rrggbb` minúsculo em Settings); no seletor buscar "git", "banco", "nuvem"; "Mostrar mais"; navegar por setas.
 4. Renomear (duplo clique), nome vazio mostra erro; Desfazer pelo toast e por Ctrl+Z; salvar visível em Settings (groupedTools.groups) com ids e color.
 5. Recolher todos pelo botão e por **Alt+Shift+C** com o painel em foco (confirmar que alterna uma vez só; se não funcionar, ver nota abaixo).
 6. Escopo Este projeto: primeira edição avisa e copia o global; Voltar ao global; em pasta não confiável (Restricted Mode) "Este projeto" fica indisponível e só o Global aparece.
@@ -20,7 +20,7 @@ Preparação: abrir a pasta no VS Code, F5 (Extension Development Host). Abra um
 4. SEC-13/15: no projeto, um item workbench.action.toggleStatusbarVisibility pede confirmação; um item com centenas de espaços antes do payload mostra ␠×N no modal e só oferece Executar uma vez.
 
 ## B. Fixar grupos (UX-19, UX-20)
-1. ⋯ > Fixar na barra de atividades num grupo com ícone do catálogo (ex.: database): o ícone igual ao do grupo aparece na barra de atividades. Conferir o título no hover: "Ferramentas · Banco de dados".
+1. ⋯ > Fixar na barra de atividades num grupo com ícone do catálogo (ex.: database): o ícone igual ao do grupo aparece na barra de atividades. Conferir o título no hover: "group tools · Banco de dados".
 2. **UX-19:** com nenhum grupo fixado, nenhum dos 40 contêineres aparece na barra, no clique direito da barra, em "Redefinir locais de vistas" nem em Exibir > Aparência. Se aparecerem, reduzir o catálogo.
 3. Fixar segundo grupo com o mesmo ícone: Fixar fica bloqueado, opções Trocar ícone e Desafixar e fixar este. Ícone fora do catálogo abre o seletor fixável.
 4. Clicar no ícone fixado: painel abre, os outros grupos recolhem, rola, destaca e foca no grupo (leitor de tela anuncia). Clicar em outro ícone do VS Code e depois no ícone **principal**: recolhimento anterior restaurado. Observar o "piscar" do contêiner fixo antes de redirecionar (aceitável?).
@@ -30,7 +30,7 @@ Preparação: abrir a pasta no VS Code, F5 (Extension Development Host). Abra um
 
 ## C. Barra de status (UX-25, UX-26)
 1. Cada grupo fixado: item `Nome (N)` à esquerda, glifo codicon próximo do ícone.
-2. Hover: card nativo com extensões, link por extensão abre o painel certo, "+N extensões · Ver todas" acima de 15, rodapé Abrir no Ferramentas e Gerenciar grupo (este entra em modo Organizar). Extensão não instalada aparece como texto.
+2. Hover: card nativo com extensões, link por extensão abre o painel certo, "+N extensões · Ver todas" acima de 15, rodapé Abrir no group tools e Gerenciar grupo (foca o grupo no painel; não existe mais modo Organizar). Extensão não instalada aparece como texto. Conferir que cada linha mostra ícone e link clicável (sem texto literal de imagem) e que o item da barra de status mostra só ícone e número, com o nome no hover. NÃO verificado em VS Code real.
 3. **UX-25:** o ícone `package.json` da extensão (png) aparece com 16 px? Se vier gigante ou quebrado, remover o uso de iconOf em tooltipSource (src/pins.js). Foco por teclado (Tab até o item) abre o hover? Enter abre o grupo.
 4. Alterar um grupo (renomear, adicionar item) e conferir que o texto e o card se atualizam (UX-23); instalar ou desinstalar uma extensão atualiza o selo.
 5. **UX-26:** com muitos grupos fixados, o excedente é cortado pelo VS Code; ocultar pelo menu de contexto da barra de status.
@@ -43,9 +43,9 @@ O atalho vive como keybinding da extensão (`focusedView == groupedTools.view`).
 
 ## Rodada 4 (feedback F5)
 1. Primeira ativação (limpe globalState): o painel abre e aparece o aviso com "Entendi"; reabrir o VS Code não repete.
-2. O ícone do contêiner Ferramentas é o conjunto de blocos do protótipo (não a grade de 4 quadrados), em tema claro e escuro.
+2. O ícone do contêiner group tools é o `boxes` do Lucide (não a grade de 4 quadrados), em tema claro e escuro.
 3. Bandeja "Não agrupadas": ícones originais das extensões instaladas (SVG do contêiner ou PNG), genérico quando não há; uma linha por extensão; extensão com vários painéis mostra "N painéis" e pergunta o painel em "Adicionar a…". Confirme que nenhum ícone quebra o layout nos temas claro, escuro e alto contraste.
-4. Bandeja visível sem entrar em Organizar, recolhe e lembra o estado ao reabrir. Explorer/Controle de código/Depurar não aparecem nela.
-5. Marque "Lembrar de ocultar o ícone ao adicionar", adicione uma extensão a um grupo: o aviso traz o passo e "Copiar passo". Faça o passo (botão direito no ícone > Ocultar) e confirme que funciona.
+4. Bandeja sempre visível (não há modo Organizar); arrastar um item da bandeja para um grupo e para "Novo grupo" funciona; recolhe e lembra o estado ao reabrir. Explorer/Controle de código/Depurar não aparecem nela.
+5. Adicione uma extensão a um grupo: ela só é movida para o grupo, com aviso curto e Desfazer. A opção de ocultar o ícone ao adicionar NÃO existe (o VS Code não permite que uma extensão oculte o ícone de outra); para ocultar, use o botão direito no ícone na barra de atividades > Ocultar, e confirme que isso funciona.
 6. Fixar grupo: item da barra de status e ícone da barra de atividades aparecem; desafixar remove os dois.
 7. Painéis hostis: não há como testar sem uma extensão com SVG malicioso; os testes automáticos cobrem script, on*, foreignObject, href externo e traversal.

@@ -18,7 +18,19 @@ const ext = contributes => ({ id: 'p.e', extensionPath: ROOT, packageJSON: { con
 const bar = icon => ({ viewsContainers: { activitybar: [{ id: 'c1', title: 'C', icon }] } });
 const GOOD = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff"><path d="M2 2h20"/></svg>';
 const wrap = attrs => `<svg viewBox="0 0 24 24"><path d="M0 0h1" ${attrs}/></svg>`;
-const time = fn => { const t = process.hrtime.bigint(); const r = fn(); return { r, ms: Number(process.hrtime.bigint() - t) / 1e6 }; };
+// Median of up to 5 runs: one slow run (GC, a loaded CI machine) cannot fail the test, while catastrophic backtracking
+// (seconds, not tens of ms) still fails it: a first run over 1 s is returned at once, without repeating.
+const time = fn => {
+  const runs = []; let r;
+  for (let i = 0; i < 5; i++) {
+    const t = process.hrtime.bigint(); const out = fn(); const ms = Number(process.hrtime.bigint() - t) / 1e6;
+    if (i === 0) r = out;
+    runs.push(ms);
+    if (ms > 1000) return { r, ms };
+  }
+  runs.sort((a, b) => a - b);
+  return { r, ms: runs[2] };
+};
 
 // ---- SEC-19: regex audit (linear time on hostile input) --------------------------------------------------
 test('SEC-19: pathological 20000-char inputs are rejected or dropped in under 50 ms each', () => {

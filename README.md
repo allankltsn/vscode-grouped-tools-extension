@@ -1,6 +1,6 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/hero.svg">
-  <img alt="Ferramentas agrupadas: banner com o painel da extensão, mostrando a busca, o grupo Qualidade e testes com Problemas e Testes, grupos recolhidos e o item do grupo fixado na barra de status" src="assets/hero.svg" width="100%">
+  <img alt="group tools: banner com o painel da extensão, mostrando a busca, o grupo Qualidade e testes com Problemas e Testes, grupos recolhidos e o item do grupo fixado na barra de status, com ícone e número" src="assets/hero.svg" width="100%">
 </picture>
 
 <p align="center">
@@ -10,16 +10,16 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/vers%C3%A3o-0.0.4-0ea5a4?style=flat-square" alt="Versão 0.0.4">
+  <img src="https://img.shields.io/badge/vers%C3%A3o-0.1.1-0ea5a4?style=flat-square" alt="Versão 0.1.1">
   <img src="https://img.shields.io/badge/VS%20Code-%5E1.85-007acc?style=flat-square&logo=visualstudiocode&logoColor=white" alt="VS Code ^1.85">
   <img src="https://img.shields.io/badge/JavaScript-sem%20depend%C3%AAncias-f7df1e?style=flat-square&logo=javascript&logoColor=black" alt="JavaScript puro, sem dependências">
   <img src="https://img.shields.io/badge/Node-%E2%89%A521%20para%20check%20e%20test-5fa04e?style=flat-square&logo=nodedotjs&logoColor=white" alt="Node 21 ou superior para check e test">
-  <img src="https://img.shields.io/badge/testes-117%20passando-16a34a?style=flat-square" alt="117 testes passando">
+  <img src="https://img.shields.io/badge/testes-133%20passando-16a34a?style=flat-square" alt="133 testes passando">
 </p>
 
 ---
 
-**Ferramentas agrupadas** é uma extensão do VS Code que reúne atalhos para os painéis de outras extensões em um painel compacto, com busca, grupos recolhíveis com cor e ícone, favoritos e modo Organizar (arrastar, renomear, cor, ícone). Um grupo pode ser fixado na barra de atividades e na barra de status. O painel segue as cores e fontes do tema (claro, escuro e alto contraste) e os favoritos ficam salvos por workspace.
+**group tools** (nome exibido da extensão; o nome técnico continua `grouped-tools`) é uma extensão do VS Code que reúne atalhos para os painéis de outras extensões em um painel compacto, com busca, grupos recolhíveis com cor e ícone, favoritos e organização sempre ativa (arrastar, renomear, cor, ícone), sem modo de edição. Um grupo pode ser fixado na barra de atividades e na barra de status. O painel segue as cores e fontes do tema (claro, escuro e alto contraste) e os favoritos ficam salvos por workspace.
 
 Ela agrupa atalhos; não move as interfaces originais das extensões.
 
@@ -38,7 +38,7 @@ git clone https://github.com/allankltsn/vscode-grouped-tools-extension.git
 cd vscode-grouped-tools-extension
 code .
 # no VS Code: F5 e escolha "Testar extensão"
-# na janela Extension Development Host, clique em Ferramentas
+# na janela Extension Development Host, clique no ícone group tools
 ```
 
 </details>
@@ -59,18 +59,18 @@ Não há `npm install` nem build: é JavaScript puro, sem dependências. Se uma 
       <p>Filtra por ferramenta, grupo ou ID de comando; estrelas guardam favoritos por workspace. <code>groupedTools.groups</code> <code>Tab/Enter</code></p>
     </td>
     <td width="50%" valign="top">
-      <h3><img src="assets/icons/teal/grip-vertical.svg" width="20" align="top"> Modo Organizar</h3>
-      <p>Arraste itens e grupos, ou use o teclado (Espaço, setas, Esc). Renomear, cor e ícone no menu do grupo. <code>Alt+setas</code> <code>Ctrl+Z</code></p>
+      <h3><img src="assets/icons/teal/grip-vertical.svg" width="20" align="top"> Organizar sempre ativo</h3>
+      <p>Arraste itens e grupos, ou use o teclado (Espaço, setas, Esc); toda mudança é salva na hora. Renomear, cor e ícone no menu do grupo. <code>Alt+setas</code> <code>Ctrl+Z</code></p>
     </td>
   </tr>
   <tr>
     <td width="50%" valign="top">
       <h3><img src="assets/icons/teal/pin.svg" width="20" align="top"> Grupos fixados</h3>
-      <p>Um ícone na barra de atividades e um item <code>Nome (N)</code> na barra de status, com card nativo que abre cada extensão. <code>40 ícones</code></p>
+      <p>Um ícone na barra de atividades e um item na barra de status com só o ícone e o número de extensões (o nome aparece no hover), e um card nativo cujos links abrem cada extensão. <code>40 ícones</code></p>
     </td>
     <td width="50%" valign="top">
       <h3><img src="assets/icons/teal/puzzle.svg" width="20" align="top"> Não agrupadas</h3>
-      <p>Bandeja sempre visível com as extensões instaladas e seus ícones originais, sanitizados. Adicione a um grupo com um gesto. <code>Adicionar a…</code></p>
+      <p>Bandeja sempre visível com as extensões instaladas e seus ícones originais, sanitizados. Adicione a um grupo por <code>Adicionar a…</code> ou arrastando o item da bandeja.</p>
     </td>
   </tr>
   <tr>
@@ -80,18 +80,18 @@ Não há `npm install` nem build: é JavaScript puro, sem dependências. Se uma 
     </td>
     <td width="50%" valign="top">
       <h3><img src="assets/icons/teal/palette.svg" width="20" align="top"> Temas e acessibilidade</h3>
-      <p>Cores do tema ativo, foco visível, navegação por teclado e estados vazios. Paleta de grupos g-1 a g-10 medida por contraste. <code>g-1..g-10</code></p>
+      <p>Cores do tema ativo, foco visível, navegação por teclado e estados vazios. Paleta de grupos g-1 a g-10 medida por contraste, ou cor própria por código (HEX, RGB ou HSL). <code>g-1..g-10</code></p>
     </td>
   </tr>
 </table>
 
 ## <img src="assets/icons/teal/workflow.svg" width="22" align="top"> Como funciona
 
-<img alt="Diagrama animado: a configuração groupedTools.groups passa pela validação em src/config.js, chega ao painel Ferramentas e pode ser fixada na barra de atividades e na barra de status; itens do projeto passam por confirmação de segurança" src="assets/fluxo-grupos.svg" width="100%">
+<img alt="Diagrama animado: a configuração groupedTools.groups passa pela validação em src/config.js, chega ao painel group tools e pode ser fixada na barra de atividades e na barra de status; itens do projeto passam por confirmação de segurança" src="assets/fluxo-grupos.svg" width="100%">
 
 - **Uma configuração.** Os grupos vivem em `groupedTools.groups`, no escopo Global (padrão, vale para todos os projetos) ou em Este projeto (grava no workspace e prevalece; a primeira edição copia a global).
 - **Validação antes de exibir.** `src/config.js` aplica os limites e remove caracteres de controle e bidi dos nomes.
-- **Um painel, dois modos.** Usar e Organizar mostram a mesma lista; salvar é automático a cada gesto, com aviso Desfazer por 8 s.
+- **Um painel, sem modos.** Usar e organizar acontecem na mesma lista; não há botão nem modo Organizar. Alças, arraste e teclado ficam sempre ativos e toda mudança é salva na hora, com aviso Desfazer por 8 s.
 - **Fixar é opcional e só no Global.** O ícone da barra de atividades é um arquivo estático, por isso só ícones do catálogo curado (`media/pin-catalog.js`, 40 ícones) podem ser fixados, um grupo por ícone.
 
 ## <img src="assets/icons/teal/gauge.svg" width="22" align="top"> Números
@@ -99,22 +99,23 @@ Não há `npm install` nem build: é JavaScript puro, sem dependências. Se uma 
 <table>
   <tr>
     <td width="55%" valign="top">
-      <img alt="Gráfico de barras animado: testes por arquivo, provider 41, config 23, pins 14, hardening 11, ext-icons-sec 10, model 8, ext-icons 7, commands 3, somando 117" src="assets/graficos/testes.svg" width="100%">
+      <img alt="Gráfico de barras animado: testes por arquivo, provider 41, config 23, panel-ajustes 15, pins 14, hardening 11, ext-icons-sec 10, model 7, ext-icons 7, commands 3, followups 2, somando 133" src="assets/graficos/testes.svg" width="100%">
     </td>
     <td width="45%" valign="top">
-      <img alt="Gráfico de rosca animado: linhas por área, media 2181, test 1640, src 808, scripts 187" src="assets/graficos/linhas.svg" width="100%">
+      <img alt="Gráfico de rosca animado: linhas por área, media 2341, test 1916, src 803, scripts 187" src="assets/graficos/linhas.svg" width="100%">
     </td>
   </tr>
 </table>
 
-Contagens feitas no repositório em 04/11/2026: `npm test` roda 117 testes em 8 arquivos e todos passam; as linhas excluem `media/icons.js` (Lucide, gerado) e `media/pin/*.svg` (gerados). A extensão declara 41 contêineres na barra de atividades (1 principal e 40 fixáveis) e o seletor de ícones oferece 2015 ícones do Lucide 1.66.0.
+Contagens feitas no repositório em 04/11/2026 (os números mudam a cada commit; recontar com `npm test`): `npm test` roda 133 testes em 10 arquivos e todos passam; as linhas excluem `media/icons.js` (Lucide, gerado) e `media/pin/*.svg` (gerados). A extensão declara 41 contêineres na barra de atividades (1 principal e 40 fixáveis) e o seletor de ícones oferece 2015 ícones do Lucide 1.66.0.
 
 ## <img src="assets/icons/teal/terminal.svg" width="22" align="top"> Uso
 
-- **Usar.** Clique num item para abrir o painel da extensão; a estrela favorita; a busca filtra grupos e itens; **Recolher todos** (Alt+Shift+C com o painel em foco) alterna entre recolher e expandir.
-- **Organizar.** O botão abre o modo de edição sobre a mesma lista. Arraste pela alça, ou use Espaço (pegar), setas (mover; esquerda e direita trocam de grupo), Espaço (soltar) e Esc (cancelar); Alt+setas move um passo. O menu ⋯ oferece Mover para…, Renomear, Cor e ícone e Excluir; duplo clique no nome renomeia o grupo.
+- **Usar.** Clique num item para abrir o painel da extensão (o clique no item sempre o executa); a estrela favorita; a busca filtra grupos e itens; **Recolher todos** (Alt+Shift+C com o painel em foco) alterna entre recolher e expandir.
+- **Organizar.** Não há botão nem modo: a lista já é editável e cada mudança é salva na hora. Em lista filtrada (busca, Favoritos, só quebrados) não há reordenação. Arraste pela alça, ou use Espaço (pegar), setas (mover; esquerda e direita trocam de grupo), Espaço (soltar) e Esc (cancelar); Alt+setas move um passo. O menu ⋯ oferece Mover para…, Renomear, Cor e ícone e Excluir; duplo clique no nome renomeia o grupo. Os itens da bandeja Não agrupadas também podem ser arrastados para um grupo ou para Novo grupo.
+- **Cor do grupo.** Um grupo novo nasce com cor aleatória da paleta (sem repetir a do grupo de cima). Em ⋯, **Cor e ícone**, além da paleta g-1 a g-10, há o campo de cor própria com máscara e seletor de formato: HEX (`#RGB` ou `#RRGGBB`), RGB ou HSL. A cor é guardada sempre como `#rrggbb` minúsculo e o botão Aplicar só habilita com valor válido.
 - **Ícones.** O seletor busca entre todos os ícones Lucide (nome, tags, palavras em português como banco, nuvem, pasta) e mostra 60 por vez. Ícones de grupos e itens aceitam qualquer nome do Lucide (ex.: `plus`, `music`, `kanban`).
-- **Fixar.** ⋯ do grupo, **Fixar na barra de atividades e na barra de status** (só no escopo Global). Clicar no ícone ou no item abre o painel com os outros grupos recolhidos, rola até o grupo, destaca e foca; o ícone principal Ferramentas restaura o recolhimento anterior.
+- **Fixar.** ⋯ do grupo, **Fixar na barra de atividades e na barra de status** (só no escopo Global). Clicar no ícone ou no item abre o painel com os outros grupos recolhidos, rola até o grupo, destaca e foca; o ícone principal group tools restaura o recolhimento anterior.
 - **Grupo padrão.** O único é **Qualidade e testes** (cor Verde, classe `g-7`) com Problemas e Testes. O cartão de primeira vez oferece *Criar o grupo sugerido* ou *Começar do zero*. Os atalhos de extensões abrem o painel original (`workbench.view.extension.<id do contêiner>`) e só funcionam com a extensão instalada.
 
 <details>
@@ -122,8 +123,8 @@ Contagens feitas no repositório em 04/11/2026: `npm test` roda 117 testes em 8 
 
 O VS Code não permite que uma extensão contribua diretamente à barra lateral secundária por padrão. Mova o painel uma vez:
 
-1. Abra Ferramentas.
-2. No menu de contexto do título Ferramentas, escolha *Mover Exibição* e *Barra Lateral Secundária* (os nomes podem variar conforme o idioma e a versão).
+1. Abra group tools.
+2. No menu de contexto do título group tools, escolha *Mover Exibição* e *Barra Lateral Secundária* (os nomes podem variar conforme o idioma e a versão).
 3. Também é possível arrastar a exibição para a barra lateral secundária.
 4. Ajuste a largura para cerca de 300 px; a interface se adapta a outras larguras.
 5. Para liberar espaço para código, use Exibir, Aparência, Barra Lateral Secundária para ocultar ou reabrir a barra.
@@ -136,8 +137,8 @@ O posicionamento é administrado pelo VS Code; após mover, o acesso ao painel a
 <summary><b>Detalhes do painel: bandeja, ícone, salvar e escopo</b></summary>
 
 - **Não agrupadas:** sempre visível abaixo dos grupos (recolhível; o estado é lembrado). Uma linha por extensão; se ela tem vários painéis, aparece "N painéis" e *Adicionar a…* pergunta qual. Os ícones são os originais das extensões (ícone do contêiner na barra de atividades ou o PNG da extensão), lidos e sanitizados; o genérico aparece quando não há como mostrar o original com segurança. Comandos livres entram por ⋯, *Adicionar item…*, *Comando do VS Code*.
-- **Lembrar de ocultar o ícone ao adicionar:** o VS Code não oferece como uma extensão ocultar o ícone de outra na barra de atividades. Com a opção marcada, o painel mostra o passo ("clique com o botão direito no ícone e escolha Ocultar") e o botão *Copiar passo*.
-- **Onde fica o ícone Ferramentas:** o VS Code coloca novos ícones no fim da barra de atividades e a extensão não controla a posição. Na primeira ativação o painel abre sozinho e avisa; arraste o ícone para onde quiser.
+- **Ocultar o ícone de uma extensão:** adicionar uma extensão a um grupo só a move para o grupo (aviso curto com Desfazer). O painel não oculta o ícone dela na barra de atividades, porque o VS Code não permite que uma extensão oculte o ícone de outra; para isso, clique com o botão direito no ícone e escolha Ocultar.
+- **Onde fica o ícone group tools (`boxes`, do Lucide):** o VS Code coloca novos ícones no fim da barra de atividades e a extensão não controla a posição. Na primeira ativação o painel abre sozinho e avisa; arraste o ícone para onde quiser.
 - **Salvar:** automático a cada gesto, com aviso Desfazer por 8 s (Ctrl+Z também). Erros mantêm o rascunho na tela, com *Tentar de novo* ou *Descartar*.
 - **Escopo:** Global (padrão) vale para todos os projetos; Este projeto grava no workspace e prevalece. Em pasta não confiável (Workspace Trust) só vale o Global e Este projeto fica indisponível. Edições avançadas (argumentos de comando) ficam no Settings (`groupedTools.groups`).
 
@@ -178,7 +179,7 @@ O posicionamento é administrado pelo VS Code; após mover, o acesso ao painel a
 - **Ações que gravam em `settings.json`** (como alternar a barra de status ou a de atividades) não fazem parte da lista de ações sem confirmação no projeto.
 - **Ids:** o id de um grupo sem `id` na configuração é derivado do nome (`grp-<hash do nome>`); renomear um grupo escrito à mão (sem id) muda o id até o painel gravá-lo. O id de item deriva de comando, nome e argumentos.
 - **Contraste:** `node scripts/contrast.js` mede a paleta (barra 3:1, texto 4.5:1) em Light+ e Dark+.
-- **Limites da plataforma nos fixados:** o hover da barra de atividades mostra só o título "Ferramentas · <ícone>" (não o nome nem a cor do grupo); o excedente da barra de status é cortado pelo VS Code. Os contêineres, views e SVGs são gerados: `node scripts/build-pins.js` (`--check` verifica; o teste compara).
+- **Limites da plataforma nos fixados:** o hover da barra de atividades mostra só o título "group tools · <ícone>" (não o nome nem a cor do grupo); o excedente da barra de status é cortado pelo VS Code. Os contêineres, views e SVGs são gerados: `node scripts/build-pins.js` (`--check` verifica; o teste compara).
 
 </details>
 
@@ -191,7 +192,7 @@ O posicionamento é administrado pelo VS Code; após mover, o acesso ao painel a
 
 ```bash
 npm run check   # node --check em src/, media/*.js (exceto icons.js) e scripts/
-npm test        # node --test "test/*.test.js" (117 testes)
+npm test        # node --test "test/*.test.js" (133 testes)
 node scripts/build-pins.js --check   # contêineres e SVGs fixáveis em dia
 node scripts/contrast.js             # contraste da paleta em Light+ e Dark+
 ```
@@ -212,11 +213,11 @@ vscode-grouped-tools-extension/
 ├── src/              extensão: ativação, painel, fixados, validação
 ├── media/            interface do painel (view.*), modelo, ícones, pin/*.svg
 ├── scripts/          build-icons, build-pins, contrast, svg-allowlist
-├── test/             8 arquivos node --test, 117 testes
+├── test/             10 arquivos node --test, 133 testes
 ├── docs/             design do redesenho, teste manual, operações
 ├── v1/               versão anterior, só referência
 ├── assets/           imagens do README e do CHANGELOG, fora do VSIX
-├── package.json      manifesto da extensão (0.0.4)
+├── package.json      manifesto da extensão
 └── .vscodeignore     conteúdo do pacote VSIX
 ```
 

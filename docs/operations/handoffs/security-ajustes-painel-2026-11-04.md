@@ -57,3 +57,11 @@ Persistido pelo principal a partir do relatório do gate. Veredito: APROVADO, se
 - Estado antigo com `remember` é ignorado (lista fixa de chaves com checagem de tipo) e some no próximo save; sem tipo novo de postMessage.
 - Observação: nomes de teste em test/provider.test.js já usam IDs SEC de ciclos anteriores; prefixar por ciclo nos próximos para evitar colisão.
 - Limites: sem VS Code real nem CDP; render do painel após a remoção não verificado; npm audit não aplicável.
+
+---
+# Follow-ups 0.1.1 (HEAD bc3ec98; diff d5f4e93e06d76efa; test/followups.test.js sha256 409767e84aee26d0)
+Persistido pelo principal a partir do relatório do gate. Veredito: APROVADO, sem achado novo. SEC-2 FECHADO; SEC-1 segue corrigido.
+- src/pins.js: o nome de reserva ("Novo grupo", "Extensão sem nome") passa por `escapeMarkdown`; `encodeURIComponent(JSON.stringify)`, `isTrusted` (3 comandos próprios) e `supportHtml=false` inalterados. Fuzz de 196 combinações grupo x item: 0 falhas, 4 links `command:groupedTools.*`, 2 células por linha.
+- media/model.js: entrada >64 caracteres rejeitada antes de qualquer regex; 100k a 150k caracteres em 0,01-0,26 ms nos 3 formatos; 64 aceito, 65 rejeitado; regex estrita, colorOf e isHexColor intactos.
+- test/ext-icons-sec.test.js: limite de 50 ms agora sobre a mediana de 5 execuções; backtracking determinístico continua falhando; execução >1 s falha na hora. 12/12 nos arquivos relevantes.
+- Limites: sem VS Code real nem CDP; não rodou a suíte inteira; npm audit não se aplica.

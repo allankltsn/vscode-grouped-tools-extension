@@ -10,6 +10,10 @@ const MAX_ROWS = 15;
 const TRUSTED_COMMANDS = ['groupedTools.runById', 'groupedTools.openGroup', 'groupedTools.manageGroup'];
 const MAX_HOVER_NAME = 100;
 
+// Fallback names when a name has nothing visible left after cleaning (empty, blanks, zero-width, bidi, control).
+const FALLBACK_GROUP = 'Novo grupo', FALLBACK_ITEM = 'Extensão sem nome';
+const visibleName = (name, fallback) => cleanText(String(name == null ? '' : name).slice(0, MAX_HOVER_NAME * 2)).slice(0, MAX_HOVER_NAME) || fallback;
+
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
 // Escapes text for Markdown (and for `$(icon)` syntax) so a group or item name can never become a link.
@@ -20,7 +24,7 @@ function escapeMarkdown(text) {
 function commandUri(command, args) { return `command:${command}?${encodeURIComponent(JSON.stringify(args))}`; }
 
 // Plain, one-line name for labels (control, zero-width and bidi characters removed, capped).
-const plainName = name => cleanText(String(name).slice(0, MAX_HOVER_NAME * 2)).slice(0, MAX_HOVER_NAME);
+const plainName = name => visibleName(name, FALLBACK_GROUP);
 // Status bar shows only the group icon and the item count; the name lives in the hover and in the accessible label.
 function statusText(group, count) { return `$(${catalog.pinCodicon(group.icon)}) ${count}`; }
 
@@ -28,16 +32,16 @@ function statusText(group, count) { return `$(${catalog.pinCodicon(group.icon)})
 // and a `|` inside `![alt|width=..]` would split the table cell. Each installed item is a link that opens it.
 function tooltipSource(group, items) {
   const open = commandUri('groupedTools.openGroup', [group.id]);
-  const lines = [`**${escapeMarkdown(group.name)}** · ${plural(items.length, 'extensão', 'extensões')}`, ''];
+  const lines = [`**${escapeMarkdown(visibleName(group.name, FALLBACK_GROUP))}** · ${plural(items.length, 'extensão', 'extensões')}`, ''];
   if (!items.length) lines.push('Grupo vazio.', '');
   else {
     lines.push('| | |', '|:-:|---|');
     for (const item of items.slice(0, MAX_ROWS)) {
       const icon = item.kind === 'command' ? '$(terminal)' : '$(extensions)';
-      const name = escapeMarkdown(item.name);
+      const shown = visibleName(item.name, FALLBACK_ITEM), name = escapeMarkdown(shown);
       const cell = item.installed === false
         ? `${name} *\\(não instalado\\)*`
-        : `[${name}](${commandUri('groupedTools.runById', [group.id, item.id])} "Abrir ${cleanText(item.name).slice(0, MAX_HOVER_NAME).replace(/[^\p{L}\p{N} ._-]/gu, '')}")`;
+        : `[${name}](${commandUri('groupedTools.runById', [group.id, item.id])} "Abrir ${shown.replace(/[^\p{L}\p{N} ._-]/gu, '')}")`;
       lines.push(`| ${icon} | ${cell} |`);
     }
     lines.push('');

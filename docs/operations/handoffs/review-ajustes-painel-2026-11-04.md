@@ -25,3 +25,12 @@ Limites: não reexecutou o arraste nativo via CDP nem o harness de layout; confi
 
 ## Veredito (este snapshot)
 Conformidade: sem pendências bloqueantes. Técnico: sem pendências bloqueantes. REV-2 e REV-3 precisam de disposição explícita do principal. Qualquer delta exige revalidação. Não substitui security, QA nem o aceite humano.
+
+---
+# Follow-ups 0.1.1 (HEAD bc3ec98; diff d5f4e93e06d76efa; test/followups.test.js sha256 409767e84aee26d0)
+Persistido pelo principal a partir do relatório do reviewer (Sonnet 5.5, independente). Veredito: sem pendências bloqueantes; `npm run check` limpo, `npm test` 133/133.
+- Conformidade: só CHANGELOG.md, media/model.js, package.json (apenas `version`), src/pins.js, test/ext-icons-sec.test.js e test/followups.test.js mudaram; seção 0.1.1 coerente; sem código morto.
+- REV-4: a mediana de 5 execuções mantém a propriedade do SEC-19. SEC-2: rejeitar (não truncar) entradas >64 caracteres está correto.
+- REV-10 (baixa, ACEITO pelo principal, sem correção): nome só com pontuação (ex. "!!!") gera título de link `"Abrir "` sem nome; cosmético, não é regressão.
+- REV-11 (info): o teste de tempo do SEC-2 (<50 ms por entrada) depende da máquina e não usa mediana; risco baixo (caminho O(1)).
+- Limites: sem VS Code real; README (REV-3) fora deste snapshot.
