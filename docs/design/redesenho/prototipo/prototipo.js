@@ -1,4 +1,4 @@
-/* Protótipo do painel redesenhado - Ferramentas agrupadas.
+/* Protótipo do painel redesenhado - group tools (fiel ao produto 0.1.1).
    Tudo é simulado em memória; nada é gravado. Sem dependências (usa window.toolIcons de icons-subset.js). */
 (function () {
 'use strict';
@@ -47,8 +47,114 @@ function cssq(v) { return (window.CSS && CSS.escape) ? CSS.escape(v) : v.replace
 
 /* ---------- dados de exemplo (pt-BR) ---------- */
 var COLORS = [['g-1', 'Azul'], ['g-2', 'Violeta'], ['g-3', 'Rosa'], ['g-4', 'Vermelho'], ['g-5', 'Laranja'],
-  ['g-6', 'Âmbar'], ['g-7', 'Verde'], ['g-8', 'Turquesa'], ['g-9', 'Ciano'], ['g-10', 'Ardósia (sem cor)']];
-function cname(k) { for (var i = 0; i < COLORS.length; i++) if (COLORS[i][0] === k) return COLORS[i][1]; return COLORS[9][1]; }
+  ['g-6', 'Âmbar'], ['g-7', 'Verde'], ['g-8', 'Turquesa'], ['g-9', 'Ciano'], ['g-10', 'Ardósia']];
+var NEUTRAL = 'g-10', MAX_GROUPS = 100, BLOCKED_COMMANDS = ['groupedTools.run', 'groupedTools.runById', 'groupedTools.openGroup', 'groupedTools.manageGroup'];
+/* cor do grupo: id da paleta (g-1..g-10) ou '#rrggbb' minúsculo (mesma regra de media/model.js 0.1.1) */
+var HEX_COLOR = /^#[0-9a-f]{6}$/;
+function isHexColor(v) { return typeof v === 'string' && HEX_COLOR.test(v); }
+function isPaletteColor(v) { return COLORS.some(function (c) { return c[0] === v; }); }
+function isValidColor(v) { return isPaletteColor(v) || isHexColor(v); }
+function colorOf(g) { return isValidColor(g && g.color) ? g.color : NEUTRAL; }
+function colorClass(g) { return isHexColor(colorOf(g)) ? 'g-custom' : colorOf(g); }
+function cname(k) { if (isHexColor(k)) return 'Personalizada ' + k; for (var i = 0; i < COLORS.length; i++) if (COLORS[i][0] === k) return COLORS[i][1]; return COLORS[9][1]; }
+/* grupo novo: cor aleatória da paleta (nunca a neutra), sem repetir a do grupo de cima */
+function randomColor(groups, at) {
+  var idx = at == null ? groups.length : Math.max(0, Math.min(at, groups.length));
+  var prev = idx > 0 && groups[idx - 1] ? groups[idx - 1].color : null;
+  var pool = COLORS.map(function (c) { return c[0]; }).filter(function (c) { return c !== NEUTRAL && c !== prev; });
+  return pool[Math.min(pool.length - 1, Math.floor(Math.random() * pool.length))];
+}
+/* cor por código: HEX, RGB e HSL com máscara e leitura estrita */
+var COLOR_FORMATS = {
+  hex: { label: 'HEX', placeholder: '#3B82F6', example: 'Exemplos: #3B82F6 ou #38F', error: 'HEX precisa de 3 ou 6 dígitos (0 a 9 e A a F).' },
+  rgb: { label: 'RGB', placeholder: '59, 130, 246', example: 'Exemplo: 59, 130, 246 (cada valor de 0 a 255)', error: 'RGB precisa de três números inteiros de 0 a 255.' },
+  hsl: { label: 'HSL', placeholder: '217, 91%, 60%', example: 'Exemplo: 217, 91%, 60% (H de 0 a 360, S e L de 0 a 100)', error: 'HSL precisa de H de 0 a 360 e de S e L de 0 a 100%.' }
+};
+var FORMAT_LIMITS = { rgb: [255, 255, 255], hsl: [360, 100, 100] };
+function numberTokens(raw, limits) {
+  var tokens = [], cur = '';
+  for (var k = 0; k < String(raw).length; k++) {
+    var ch = String(raw)[k];
+    if (ch >= '0' && ch <= '9') {
+      if (tokens.length >= 3) break;
+      if (Number(cur + ch) > limits[tokens.length]) continue;
+      cur += ch;
+      if (cur.length === 3 || Number(cur) * 10 > limits[tokens.length]) { tokens.push(cur); cur = ''; }
+    } else if ((ch === ',' || ch === ' ' || ch === ';') && cur) { tokens.push(cur); cur = ''; }
+  }
+  var open = cur !== '';
+  if (open) tokens.push(cur);
+  return { tokens: tokens.slice(0, 3), open: open };
+}
+function maskColorInput(format, raw, how) {
+  var deleting = how === 'delete', pasting = how === 'paste', text = String(raw == null ? '' : raw).slice(0, 64);
+  if (format === 'hex') {
+    var digits = text.replace(/[^0-9a-fA-F]/g, '').slice(0, 6).toUpperCase();
+    return digits ? '#' + digits : (text.indexOf('#') >= 0 ? '#' : '');
+  }
+  var limits = FORMAT_LIMITS[format]; if (!limits) return '';
+  if (pasting) {
+    return (text.match(/\d+/g) || []).slice(0, 3).map(function (t, i) { return String(Math.min(limits[i], Number(t.slice(0, 6)))); })
+      .map(function (t, i) { return format === 'hsl' && i > 0 ? t + '%' : t; }).join(', ');
+  }
+  var r = numberTokens(text, limits), tokens = r.tokens;
+  var out = tokens.map(function (t, i) { return (format === 'hsl' && i > 0 && !(deleting && i === tokens.length - 1)) ? t + '%' : t; }).join(', ');
+  if (out && !r.open && !deleting && tokens.length < 3) out += ', ';
+  return out;
+}
+function hex2(n) { return n.toString(16).padStart(2, '0'); }
+function rgbToHex(r, g, b) { return '#' + hex2(r) + hex2(g) + hex2(b); }
+function hslToHex(h, s, l) {
+  var sat = s / 100, lig = l / 100, a = sat * Math.min(lig, 1 - lig);
+  function k(n) { return (n + h / 30) % 12; }
+  function f(n) { return lig - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1))); }
+  return rgbToHex(Math.round(f(0) * 255), Math.round(f(8) * 255), Math.round(f(4) * 255));
+}
+function parseColorInput(format, text) {
+  var spec = COLOR_FORMATS[format]; if (!spec) return { ok: false, error: 'Formato de cor desconhecido.' };
+  var raw = String(text == null ? '' : text);
+  if (raw.length > 64) return { ok: false, error: spec.error };
+  var value = raw.trim(), m;
+  if (format === 'hex') {
+    m = /^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.exec(value);
+    if (!m) return { ok: false, error: spec.error };
+    var d = m[1].toLowerCase();
+    return { ok: true, hex: '#' + (d.length === 3 ? d.split('').map(function (c) { return c + c; }).join('') : d) };
+  }
+  var re = format === 'rgb' ? /^(\d{1,3})\s*[, ]\s*(\d{1,3})\s*[, ]\s*(\d{1,3})$/ : /^(\d{1,3})\s*[, ]\s*(\d{1,3})%?\s*[, ]\s*(\d{1,3})%?$/;
+  m = re.exec(value.replace(/[,\s]+$/, ''));
+  if (!m) return { ok: false, error: spec.error };
+  var n = m.slice(1, 4).map(Number), lim = FORMAT_LIMITS[format];
+  if (n.some(function (v, i) { return v > lim[i]; })) return { ok: false, error: spec.error };
+  return { ok: true, hex: format === 'rgb' ? rgbToHex(n[0], n[1], n[2]) : hslToHex(n[0] % 360, n[1], n[2]) };
+}
+/* contraste WCAG para cores próprias: texto do grupo e marca de seleção */
+function channels(hex) { return [1, 3, 5].map(function (i) { return parseInt(hex.slice(i, i + 2), 16); }); }
+function luminance(hex) {
+  var c = channels(hex).map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+}
+function contrast(a, b) { var x = luminance(a), y = luminance(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+function onColor(hex) { return contrast(hex, '#000000') >= contrast(hex, '#ffffff') ? '#000000' : '#ffffff'; }
+function readableTone(hex, bg, fg) {
+  function mix(a, b, t) { var x = channels(a), y = channels(b); return rgbToHex.apply(null, x.map(function (v, i) { return Math.round(v * (1 - t) + y[i] * t); })); }
+  var surface = mix(bg, hex, 0.16);
+  for (var i = 0; i <= 10; i++) { var c = mix(hex, fg, i / 10); if (contrast(c, surface) >= 4.5) return c; }
+  return fg;
+}
+function cssRgbToHex(text) {
+  var m = /^rgba?\(\s*(\d{1,3})[ ,]+(\d{1,3})[ ,]+(\d{1,3})/.exec(String(text));
+  return m ? '#' + [m[1], m[2], m[3]].map(function (v) { return hex2(Math.min(255, Number(v))); }).join('') : null;
+}
+/* cores próprias: aplicadas por script (nunca em atributo style do HTML gerado), só depois de validadas */
+function paintCustom(root) {
+  var cs = getComputedStyle(app), bg = cssRgbToHex(cs.backgroundColor) || '#252526', fg = cssRgbToHex(cs.color) || '#cccccc';
+  var els = $$('[data-gc]', root || document); if (root && root.matches && root.matches('[data-gc]')) els.unshift(root);
+  els.forEach(function (el) {
+    var hex = el.dataset.gc; if (!isHexColor(hex)) return;
+    el.style.setProperty('--g', hex); el.style.setProperty('--g-text', readableTone(hex, bg, fg)); el.style.setProperty('--on-g', onColor(hex));
+  });
+}
 
 var EXT = [
   { id: 'claude-code', name: 'Claude Code', icon: 'sparkles' },
@@ -125,10 +231,14 @@ var PT = { 'database': 'banco dados', 'git-branch': 'ramo ramificacao versao', '
 var S = {};
 var uid = 100, lastSaved = '', lastUndo = null, rendering = false, drag = null;
 var app = $('#app'), scrollEl = $('#scroll'), overlay = $('#overlay'), live = $('#live'), footEl = $('#foot');
-var qEl = $('#q'), btnOrg = $('#btnOrg'), btnScope = $('#btnScope'), btnFold = $('#btnFold');
+var qEl = $('#q'), btnScope = $('#btnScope'), btnFold = $('#btnFold');
 scrollEl.tabIndex = -1;
 
 function cur() { return S.data[S.scope]; }
+/* Organizar está sempre ativo; a única exceção é a lista filtrada (busca, favoritos, só quebrados): nunca reordenar. */
+function filteredView() { return !!fold(S.q.trim()) || S.tab === 'fav' || S.brokenOnly; }
+function canOrg() { return !!S.data && !filteredView(); }
+new MutationObserver(function () { paintCustom(); }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 function allItems() { return cur().groups.reduce(function (a, g) { return a.concat(g.items); }, []); }
 function unassigned() {
   var used = {}; allItems().forEach(function (i) { if (i.ext) used[i.ext] = 1; });
@@ -141,6 +251,7 @@ function findItem(id) {
 }
 function gById(id) { var gs = cur().groups; for (var i = 0; i < gs.length; i++) if (gs[i].id === id) return gs[i]; return null; }
 function scopeName() { return S.scope === 'global' ? 'Global' : 'Este projeto'; }
+var CMD_ICON = 'terminal';
 function snap() { return JSON.stringify({ data: S.data, own: S.projectOwn }); }
 function restore(s) {
   var o = JSON.parse(s); S.data = o.data; S.projectOwn = o.own;
@@ -250,9 +361,9 @@ function itemHTML(it, g, org, dragOn) {
       (err ? '<div class="field-err" id="rn-err">' + ic('circle-alert', 'xs') + 'Dê um nome ao item</div>' : '') + '<div class="field-n" data-n' + (val.length >= 80 ? '' : ' hidden') + '>' + val.length + '/100</div></div>';
   } else {
     h += '<button type="button" class="ibtn" data-act="run" data-iid="' + esc(it.id) + '" data-fid="ib:' + esc(it.id) + '"' +
-      (org ? ' data-kb="item:' + esc(it.id) + '" data-kbpick="1" aria-describedby="kbhelp"' : '') +
+      (org ? ' data-kb="item:' + esc(it.id) + '" aria-describedby="kbhelp"' : '') +
       (broken ? ' aria-label="' + esc(it.name) + ', não instalada"' : '') + ' title="' + esc(it.name) + (broken ? ' (não instalada)' : '') + '">' +
-      '<span class="iico"' + (org ? ' data-iconedit="' + esc(it.id) + '" title="Trocar ícone"' : '') + '>' + ic(it.icon) + '</span><span class="iname">' + hl(it.name) + '</span>' +
+      '<span class="iico">' + ic(it.icon) + '</span><span class="iname">' + hl(it.name) + '</span>' +
       (broken ? '<span class="miss">' + ic('circle-dashed', 'xxs') + '<span class="t">Não instalado</span></span>' : '') + '</button>';
     if (org) h += '<button type="button" class="icbtn act kebab" data-act="imenu" data-iid="' + esc(it.id) + '" data-fid="ik:' + esc(it.id) + '" aria-haspopup="menu" aria-label="Ações de ' + esc(it.name) + '">' + ic('ellipsis', 'sm') + '</button>';
     h += '<button type="button" class="icbtn act star" data-act="star" data-iid="' + esc(it.id) + '" data-fid="st:' + esc(it.id) + '" aria-pressed="' + (it.fav ? 'true' : 'false') + '" aria-label="Favorito: ' + esc(it.name) + '" title="' + (it.fav ? 'Remover dos favoritos' : 'Favoritar') + '">' + ic('star', 'sm') + '</button>';
@@ -276,7 +387,7 @@ function groupHTML(g, vis, filtered, q, org, dragOn) {
         (err ? '<div class="field-err" id="rn-err">' + ic('circle-alert', 'xs') + 'Dê um nome ao grupo</div>' : '') + '<div class="field-n" data-n' + (val.length >= 80 ? '' : ' hidden') + '>' + val.length + '/100</div></div>';
     } else {
       head += '<button type="button" class="gtoggle" data-act="toggle" data-gid="' + esc(g.id) + '" data-fid="gt:' + esc(g.id) + '" data-kb="group:' + esc(g.id) + '" aria-expanded="' + (col ? 'false' : 'true') + '" aria-controls="p-' + esc(g.id) + '">' +
-        '<span class="chev">' + ic('chevron-down', 'xs') + '</span><span class="chip"' + (org ? ' data-style="' + esc(g.id) + '" title="Cor e ícone"' : '') + '>' + ic(g.icon, 'sm') + '</span>' +
+        '<span class="chev">' + ic('chevron-down', 'xs') + '</span><span class="chip">' + ic(g.icon, 'sm') + '</span>' +
         '<span class="gname" title="' + esc(g.name) + '">' + hl(g.name) + '</span>' +
         (globalPinned(g) ? '<span class="pinbadge" role="img" aria-label="Fixado na barra de atividades" title="Fixado na barra de atividades com o ícone deste grupo. Vale para todos os projetos; o ícone da barra abre este grupo e recolhe os outros.">' + ic('pin', 'xxs') + '</span>' : '') +
         '<span class="count" aria-label="' + esc(cnt) + ' itens">' + esc(cnt) + '</span></button>' +
@@ -287,7 +398,7 @@ function groupHTML(g, vis, filtered, q, org, dragOn) {
   if (!vis.length && !filtered) {
     body = '<li class="empty"><span>Vazio. Arraste uma extensão aqui ou use</span><button type="button" class="lk" data-act="gadd" data-gid="' + esc(g.id) + '" data-fid="ga:' + esc(g.id) + '" aria-haspopup="menu">Adicionar item</button></li>';
   } else body = vis.map(function (it) { return itemHTML(it, g, org, dragOn); }).join('');
-  return '<section class="group grp ' + esc(g.color) + (col ? ' is-collapsed' : '') + (picked ? ' is-picked' : '') + '" data-gid="' + esc(g.id) + '" aria-label="' + esc(g.name) + '">' +
+  return '<section class="group grp ' + colorClass(g) + (col ? ' is-collapsed' : '') + (picked ? ' is-picked' : '') + '"' + (isHexColor(colorOf(g)) ? ' data-gc="' + esc(colorOf(g)) + '"' : '') + ' data-gid="' + esc(g.id) + '" aria-label="' + esc(g.name) + '">' +
     '<div class="ghead"' + (dragOn && !editing && !confirming ? ' draggable="true"' : '') + '>' + head + '</div>' +
     '<div class="panel" id="p-' + esc(g.id) + '"><div><ul class="items" data-gid="' + esc(g.id) + '" aria-label="Itens de ' + esc(g.name) + '">' + body + '</ul></div></div></section>';
 }
@@ -298,15 +409,15 @@ function trayHTML(un, q, forceOpen) {
   if (tq) list = list.filter(function (e) { return fold(e.name).indexOf(tq) >= 0; });
   var collapsed = S.trayCollapsed === null ? (un.length === 0) : S.trayCollapsed;
   if (forceOpen && un.length) collapsed = false;
-  var dragOn = app.classList.contains('is-drag-on');
   var h = '<section class="tray grp g-10' + (collapsed ? ' is-collapsed' : '') + '" aria-label="Não agrupadas" id="tray"><div class="tray-h"><button type="button" class="tt" data-act="tray-toggle" data-fid="tt" aria-expanded="' + (collapsed ? 'false' : 'true') + '"><span class="chev">' + ic('chevron-down', 'xs') + '</span><span>Não agrupadas</span><span class="ncount">' + un.length + '</span></button></div><div class="tray-body">';
-  if (!un.length) h += '<p class="tray-ok">' + ic('check', 'sm') + 'Tudo agrupado.</p>';
+  if (!EXT.length) h += '<p class="tray-ok">Nenhuma extensão com painel encontrada.</p>';
+  else if (!un.length) h += '<p class="tray-ok">' + ic('check', 'sm') + 'Tudo agrupado.</p>';
   else {
     if (un.length > 8) h += '<input class="tray-filter" data-fid="tf" id="trayQ" type="search" placeholder="Filtrar não agrupadas…" aria-label="Filtrar não agrupadas" value="' + esc(S.trayQ) + '">';
     h += '<ul class="tray-list" aria-label="Extensões não agrupadas">';
     if (!list.length) h += '<li class="tray-ok">Nada encontrado.</li>';
     h += list.map(function (e) {
-      return '<li class="item tray-item" data-ext="' + esc(e.id) + '"' + (dragOn ? ' draggable="true"' : '') + '><span class="ibtn" title="' + esc(e.name) + '"><span class="iico">' + ic(e.icon) + '</span><span class="iname">' + hl(e.name) + '</span></span>' +
+      return '<li class="item tray-item" data-ext="' + esc(e.id) + '" draggable="true"><span class="ibtn" title="' + esc(e.name) + '"><span class="iico">' + ic(e.icon) + '</span><span class="iname">' + hl(e.name) + '</span></span>' +
         '<button type="button" class="add" data-act="addto" data-ext="' + esc(e.id) + '" data-fid="ad:' + esc(e.id) + '" aria-haspopup="menu" aria-label="Adicionar ' + esc(e.name) + ' a um grupo" title="Adicionar a…">' + ic('plus', 'xs') + '<span class="t">Adicionar a…</span></button></li>';
     }).join('') + '</ul>';
   }
@@ -320,7 +431,7 @@ function illustration() {
 }
 function tipsHTML(withClose) {
   return '<div class="tips">' + (withClose ? '<button type="button" class="x" data-act="dismiss-hint" aria-label="Dispensar dica">' + ic('x', 'xs') + '</button>' : '') +
-    '<span><b>Arraste</b> uma extensão para um grupo.</span><span>Ou use <b>⋯ &gt; Mover para…</b> (teclado: Espaço e setas).</span><span>Tudo é salvo sozinho e dá para <b>Desfazer</b>.</span></div>';
+    '<span><b>Arraste</b> uma extensão para um grupo.</span><span>Ou use <b>⋯ &gt; Mover para…</b> (teclado: alça, Espaço e setas).</span><span>Tudo é salvo sozinho e dá para <b>Desfazer</b>.</span></div>';
 }
 function skeleton() {
   var h = '';
@@ -328,32 +439,31 @@ function skeleton() {
   return h;
 }
 function build() {
-  var d = cur(), un = unassigned(), org = S.mode === 'org', noG = !d.groups.length;
+  var d = cur(), un = unassigned(), org = canOrg(), noG = !d.groups.length;
   var allEmpty = !noG && d.groups.every(function (g) { return !g.items.length; });
   var q = fold(S.q.trim());
   var dragOn = org || noG || allEmpty;
-  app.classList.toggle('is-drag-on', dragOn);
+  app.classList.toggle('is-drag-on', dragOn); app.classList.toggle('is-reorder', org);
   scrollEl.setAttribute('aria-busy', S.loading ? 'true' : 'false');
   if (S.loading) return skeleton();
   var h = '';
   if (S.errBanner) h += '<div class="errbar" role="alert"><div class="t">' + ic('circle-alert', 'sm') + '<span>Não foi possível salvar: sem permissão para gravar em groupedTools.groups. Suas alterações continuam aqui como rascunho.</span></div><div class="acts"><button type="button" class="btn" data-act="retry" data-fid="rt">Tentar de novo</button><button type="button" class="btn danger" data-act="discard">Descartar alterações</button></div></div>';
   if (S.notice) h += '<div class="infobar" role="status">' + ic('info', 'sm') + '<span class="txt">' + esc(S.notice) + '</span><button type="button" class="btn" data-act="dismiss-notice" data-fid="nt">Entendi</button></div>';
-  if (S.readOnly) h += '<div class="infobar">' + ic('info', 'sm') + '<span class="txt">Há configuração por pasta; ajuste no Settings. Aqui só leitura.</span><button type="button" class="btn" data-act="settings">Abrir Settings</button></div>';
   if (noG) {
     if (!S.welcomeDone) {
-      h += '<section class="empty-state" aria-labelledby="wt">' + illustration() + '<h2 id="wt">Organize suas extensões em grupos.</h2><p>Crie grupos por assunto e chegue a cada ferramenta em um clique.</p><div class="acts"><button type="button" class="btn primary" data-act="suggest" data-fid="sg">Criar grupos sugeridos</button><button type="button" class="btn" data-act="zero">Começar do zero</button></div></section>' + tipsHTML(false);
+      h += '<section class="empty-state" aria-labelledby="wt">' + illustration() + '<h2 id="wt">Organize suas extensões em grupos.</h2><p>Crie grupos por assunto (sugestão: Qualidade e testes) e chegue a cada ferramenta em um clique.</p><div class="acts"><button type="button" class="btn primary" data-act="suggest" data-fid="sg">Criar o grupo sugerido</button><button type="button" class="btn" data-act="zero">Começar do zero</button></div></section>' + tipsHTML(false);
     } else {
-      h += '<section class="empty-state" aria-labelledby="wt">' + illustration() + '<h2 id="wt">Nenhum grupo ainda</h2><p>Comece com um grupo vazio e arraste extensões para ele.</p><div class="acts"><button type="button" class="btn primary" data-act="newgroup" data-fid="cf">Criar primeiro grupo</button><button type="button" class="btn link" data-act="suggest">Usar grupos sugeridos</button></div></section>';
+      h += '<section class="empty-state" aria-labelledby="wt">' + illustration() + '<h2 id="wt">Nenhum grupo ainda</h2><p>Comece com um grupo vazio e arraste extensões para ele.</p><div class="acts"><button type="button" class="btn primary" data-act="newgroup" data-fid="cf">Criar primeiro grupo</button><button type="button" class="btn link" data-act="suggest">Usar o grupo sugerido</button></div></section>';
     }
     return h + zoneHTML() + trayHTML(un, '', true);
   }
   var broken = allItems().filter(function (i) { return i.inst === false; }).length;
-  var showTray = S.tab === 'all' && (org || allEmpty || (S.searchTray && !!q));
+  var showTray = S.tab === 'all' && (!q || S.searchTray);
   var al = '';
   if (broken && !S.dismissed.broken) al += '<div class="alert">' + ic('circle-alert', 'sm') + '<span class="txt">' + pl(broken, 'item quebrado', 'itens quebrados') + '</span><button type="button" class="lk" data-act="show-broken" data-fid="al1">' + (S.brokenOnly ? 'Mostrar todos' : 'Ver') + '</button><button type="button" class="x" data-act="dismiss-broken" aria-label="Dispensar aviso de itens quebrados">' + ic('x', 'xs') + '</button></div>';
   if (un.length && !S.dismissed.un && !showTray && S.tab === 'all') al += '<div class="alert">' + ic('info', 'sm') + '<span class="txt">' + pl(un.length, 'extensão fora de grupos', 'extensões fora de grupos') + '</span><button type="button" class="lk" data-act="show-tray" data-fid="al2">Ver</button><button type="button" class="x" data-act="dismiss-un" aria-label="Dispensar aviso de extensões fora de grupos">' + ic('x', 'xs') + '</button></div>';
   if (al) h += '<div class="alerts">' + al + '</div>';
-  if (allEmpty && !S.dismissed.hint && !q) h += '<div class="tips" style="margin:0 0 8px"><button type="button" class="x" data-act="dismiss-hint" aria-label="Dispensar dica">' + ic('x', 'xs') + '</button><span><b>Todos os grupos estão vazios.</b> Arraste uma extensão da bandeja para um grupo, ou use <b>⋯ &gt; Mover para…</b>.</span>' + (org ? '' : '<span><button type="button" class="btn" data-act="enter-org" data-fid="eo">Organizar</button></span>') + '</div>';
+  if (allEmpty && !S.dismissed.hint && !q) h += '<div class="tips inline"><button type="button" class="x" data-act="dismiss-hint" aria-label="Dispensar dica">' + ic('x', 'xs') + '</button><span><b>Todos os grupos estão vazios.</b> Arraste uma extensão da bandeja para um grupo, ou use <b>⋯ &gt; Mover para…</b>.</span></div>';
   var filtered = !!q || S.tab === 'fav' || S.brokenOnly, gl = '', total = 0;
   d.groups.forEach(function (g) {
     var vis = visItems(g, q);
@@ -388,31 +498,25 @@ function render(focusFid) {
     if (el) { el.focus(); if (el.tagName === 'INPUT') el.setSelectionRange(el.value.length, el.value.length); }
     else if (hadFocus || focusFid) scrollEl.focus({ preventScroll: true });
   }
+  paintCustom(scrollEl);
   rendering = false;
 }
 function renderFoot() {
   var d = cur(), n = allItems().length;
   var sum = pl(n, 'item', 'itens') + ' · ' + pl(d.groups.length, 'grupo', 'grupos') + ' · ' + pl(unassigned().length, 'não agrupada', 'não agrupadas');
   var st = '';
-  if (S.save === 'saving') st = '<span class="st" title="Salvando…">' + ic('loader', 'xs') + '<span class="tt">Salvando…</span></span>';
+  if (S.save === 'saving') st = '<span class="st" title="Salvando…">' + ic('loader', 'xs spin') + '<span class="tt">Salvando…</span></span>';
   else if (S.save === 'saved') st = '<span class="st" title="Salvo em ' + scopeName() + '">' + ic('check', 'xs') + '<span class="tt">Salvo em ' + scopeName() + '</span></span>';
   else if (S.save === 'error') st = '<span class="st err" title="Erro ao salvar">' + ic('circle-alert', 'xs') + '<span class="tt">Erro ao salvar</span></span>';
   footEl.innerHTML = '<span class="sum" title="' + esc(sum) + '">' + esc(sum) + '</span>' + st + '<button type="button" class="icbtn" data-act="settings" aria-label="Abrir Settings" title="Abrir Settings">' + ic('settings', 'sm') + '</button>';
 }
 function syncTop() {
-  var org = S.mode === 'org', q = S.q.trim();
-  var dis = !!q || S.tab === 'fav' || S.readOnly || S.loading;
-  btnOrg.disabled = dis;
-  btnOrg.setAttribute('aria-pressed', org ? 'true' : 'false');
-  btnOrg.innerHTML = ic(org ? 'check' : 'sliders-horizontal', 'sm') + '<span class="lbl">' + (org ? 'Concluir' : 'Organizar') + '</span>';
-  btnOrg.setAttribute('aria-label', org ? 'Concluir organização' : 'Organizar');
-  btnOrg.title = q ? 'Limpe a busca para organizar (evita reordenar uma lista filtrada).' : S.tab === 'fav' ? 'Organizar fica disponível na aba Todas.' : S.readOnly ? 'Configuração por pasta: somente leitura. Ajuste no Settings.' : org ? 'Concluir organização' : 'Organizar: arrastar, renomear, cor e ícone';
+  var q = S.q.trim();
   $('#segAll').setAttribute('aria-pressed', S.tab === 'all' ? 'true' : 'false');
   $('#segFav').setAttribute('aria-pressed', S.tab === 'fav' ? 'true' : 'false');
   btnScope.innerHTML = ic(S.scope === 'global' ? 'globe' : 'folder', 'xs') + '<span class="lbl">' + scopeName() + '</span><span class="chev">' + ic('chevron-down', 'xs') + '</span>';
   btnScope.setAttribute('aria-label', 'Escopo: ' + scopeName());
   btnScope.title = 'Escopo: ' + scopeName() + (S.scope === 'project' ? '. Itens fixados na barra de atividades valem para todos os projetos; edite no escopo Global.' : '. Itens fixados na barra de atividades são definidos aqui.');
-  app.classList.toggle('is-org', org);
   $('#qClear').hidden = !S.q;
   var gs = cur().groups, allCol = gs.length > 0 && gs.every(function (g) { return S.collapsed[g.id]; });
   var fl = allCol ? 'Expandir todos' : 'Recolher todos';
@@ -436,9 +540,9 @@ function renderAct() {
   if (pins.length > room) { var keep = Math.max(0, room - 1); shown = pins.slice(0, keep); hidden = pins.slice(keep); }
   var h = actBtn('explorer', ic('files'), 'Explorador', S.act === 'explorer') + actBtn('search', ic('search'), 'Pesquisar', S.act === 'search') +
     actBtn('scm', ic('git-branch'), 'Controle do Código-Fonte', S.act === 'scm') + actBtn('ext', ic('puzzle'), 'Extensões', S.act === 'ext') +
-    actBtn('tools', ic('blocks'), 'Ferramentas agrupadas', S.act === 'tools');
+    actBtn('tools', ic('boxes'), 'group tools', S.act === 'tools');
   shown.forEach(function (g) {
-    h += actBtn('pin:' + g.id, ic(g.icon), 'Ferramentas · ' + pinName(g.icon), S.act === 'pin:' + g.id);
+    h += actBtn('pin:' + g.id, ic(g.icon), 'group tools · ' + pinName(g.icon), S.act === 'pin:' + g.id);
   });
   if (hidden.length) {
     var hOn = hidden.some(function (g) { return 'pin:' + g.id === S.act; });
@@ -453,7 +557,7 @@ function renderAct() {
   side.classList.toggle('away', away);
   renderStatus();
   var tit = { explorer: 'Explorador', search: 'Pesquisar', scm: 'Controle do Código-Fonte', ext: 'Extensões' }[S.act];
-  $('#vscTitle').textContent = tit || 'Ferramentas agrupadas';
+  $('#vscTitle').textContent = tit || 'group tools';
 }
 /* ---------- Barra de status simulada + card de hover nativo (MarkdownString) ---------- */
 /* Na barra de status só existem codicons ($(nome)); Lucide não é possível. Aproximação por ícone do catálogo. */
@@ -465,12 +569,8 @@ var CODICON = { 'sparkles': 'sparkle', 'bot': 'hubot', 'git-branch': 'git-branch
   'zap': 'zap', 'flame': 'flame' };
 var MAX_ROWS = 15, hv = { t: null, h: null, gid: null, anchor: null };
 var frameEl = $('#vscFrame'), sbar = $('#sbar'), hvEl = $('#sbHover');
-function extHue(s) { var h = 0; for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360; return h; }
-function extIconHTML(it) {
-  var key = it.ext || it.id;
-  if (it.cmd || extHue(key) % 3 === 0) return '<span class="xi gen">' + ic('puzzle', 'xxs') + '</span>'; /* sem package.json.icon: ícone genérico */
-  return '<span class="xi" style="background:hsl(' + extHue(key) + ',45%,38%)">' + esc(it.name.charAt(0).toUpperCase()) + '</span>'; /* simula a imagem do package.json */
-}
+/* 0.1.1: as linhas do card usam codicon, não imagem: $(terminal) para comando e $(extensions) para extensão (aqui, Lucide terminal e puzzle). */
+function extIconHTML(it) { return ic(it.cmd ? 'terminal' : 'puzzle', 'xs'); }
 function statusItems() {
   return pinnedGroups().map(function (g) { return { g: g, c: g.items.length }; });
 }
@@ -479,8 +579,9 @@ function renderStatus() {
   var list = statusItems();
   var h = '<div class="sb-l" id="sbL">' + list.map(function (o) {
     var gl = CODICON[o.g.icon] || 'folder';
-    return '<button type="button" class="sbi" data-sg="' + esc(o.g.id) + '" aria-label="' + esc(o.g.name) + ', ' + pl(o.c, 'extensão', 'extensões') + '. Grupo fixado; Enter abre o grupo." aria-haspopup="true">' +
-      ic(o.g.icon) + '<span>' + esc(o.g.name) + ' (' + o.c + ')</span></button>';
+    /* só o ícone e o número; o nome fica no card de hover e no rótulo acessível */
+    return '<button type="button" class="sbi" data-sg="' + esc(o.g.id) + '" aria-label="' + esc(o.g.name) + ', ' + pl(o.c, 'extensão', 'extensões') + '. Abre o grupo no painel group tools." aria-haspopup="true">' +
+      ic(o.g.icon) + '<span>' + o.c + '</span></button>';
   }).join('') + '</div><div class="sb-r"><span class="sbi static">Ln 42, Col 8</span><span class="sbi static">UTF-8</span><span class="sbi static">{ } TypeScript</span></div>';
   var f = document.activeElement && sbar.contains(document.activeElement) ? document.activeElement.dataset.sg : null;
   sbar.innerHTML = h;
@@ -489,21 +590,22 @@ function renderStatus() {
   var L = $('#sbL'), cut = 0;
   $$('.sbi', L).forEach(function (b) { var r = b.getBoundingClientRect(), lr = L.getBoundingClientRect(); if (r.right > lr.right + 1) { b.style.visibility = 'hidden'; b.tabIndex = -1; b.setAttribute('aria-hidden', 'true'); cut++; } });
   var note = $('#sbCut');
-  if (!note) { note = document.createElement('p'); note.id = 'sbCut'; note.className = 'sb-cut'; frameEl.parentNode.appendChild(note); }
+  if (!note) { note = document.createElement('p'); note.id = 'sbCut'; note.className = 'sb-cut'; frameEl.appendChild(note); }
   var gl2 = list.length ? 'Glifo simulado: na barra de status real o ícone é um codicon (ex.: $(' + (CODICON[list[0].g.icon] || 'folder') + ') para “' + pinName(list[0].g.icon) + '”), não o Lucide.' : 'Nenhum grupo fixado: nenhum item na barra de status.';
   note.textContent = gl2 + (cut ? ' ' + pl(cut, 'item cortado', 'itens cortados') + ' por falta de largura (o VS Code real corta o excedente; o usuário oculta itens pelo menu de contexto da barra).' : '');
   if (hv.gid && !$('[data-sg="' + cssq(hv.gid) + '"]', sbar)) hideHover(true);
 }
 function hoverHTML(g) {
   var its = g.items, rows = its.slice(0, MAX_ROWS), rest = its.length - rows.length;
-  var h = '<h4>' + esc(g.name) + ' <span class="nin" style="padding:0;font-weight:400">· ' + pl(its.length, 'extensão', 'extensões') + '</span></h4>';
+  var h = '<h4>' + esc(g.name || 'Novo grupo') + ' <span class="nin" style="padding:0;font-weight:400">· ' + pl(its.length, 'extensão', 'extensões') + '</span></h4>';
   if (!its.length) h += '<div class="dim">Grupo vazio.</div>';
   else h += '<table role="presentation">' + rows.map(function (it) {
-    var off = it.inst === false;
-    return '<tr' + (off ? ' class="dim"' : '') + '><td class="i">' + extIconHTML(it) + '</td><td><button type="button" class="lnk" data-hl="' + esc(it.id) + '" tabindex="-1" title="command:' + (it.cmd ? 'workbench.action.showCommands' : 'workbench.view.extension.' + esc(it.ext)) + '">' + esc(it.name) + '</button>' + (off ? '<span class="nin">Não instalado</span>' : '') + '</td></tr>';
+    var off = it.inst === false, nm = esc(it.name || 'Extensão sem nome');
+    /* instalado: link que abre o item; não instalado: texto com "(não instalado)", sem link */
+    return '<tr' + (off ? ' class="dim"' : '') + '><td class="i">' + extIconHTML(it) + '</td><td>' + (off ? nm + ' <em>(não instalado)</em>' : '<button type="button" class="lnk" data-hl="' + esc(it.id) + '" tabindex="-1" title="Abrir ' + nm + '">' + nm + '</button>') + '</td></tr>';
   }).join('') + '</table>';
   if (rest > 0) h += '<div class="more"><span class="dim">+' + rest + ' ' + (rest === 1 ? 'extensão' : 'extensões') + '</span> · <button type="button" class="lnk" data-hl="all" tabindex="-1">Ver todas</button></div>';
-  h += '<hr><div class="foot"><button type="button" class="lnk" data-hl="open" tabindex="-1">Abrir no Ferramentas</button><span aria-hidden="true">|</span><button type="button" class="lnk" data-hl="manage" tabindex="-1">Gerenciar grupo</button></div>';
+  h += '<hr><div class="foot"><button type="button" class="lnk" data-hl="open" tabindex="-1">Abrir no group tools</button><span aria-hidden="true">|</span><button type="button" class="lnk" data-hl="manage" tabindex="-1">Gerenciar grupo</button></div>';
   return h;
 }
 function showHover(btn, byKey) {
@@ -553,7 +655,7 @@ hvEl.addEventListener('click', function (e) {
   var k = b.dataset.hl, gid = hv.gid, g = pinnedGroups().filter(function (x) { return x.id === gid; })[0];
   hideHover(true);
   if (k === 'open' || k === 'all') { openPin(gid); }
-  else if (k === 'manage') { openPin(gid); S.mode = 'org'; fullRender(null); announce('Modo Organizar ativado para gerenciar o grupo ' + (g ? g.name : '') + '.'); }
+  else if (k === 'manage') { openPin(gid); }
   else { var it = g && g.items.filter(function (x) { return x.id === k; })[0]; if (it) { toast({ kind: 'info', text: 'Abriria o painel de ' + it.name + ' (command: link, simulado).' }); announce('Abrindo ' + it.name); } }
 });
 function reducedMotion() { return window.matchMedia('(prefers-reduced-motion:reduce)').matches || document.documentElement.classList.contains('pv-reduce'); }
@@ -577,14 +679,14 @@ function openPin(gid) {
     sec.classList.add('pin-flash'); setTimeout(function () { sec.classList.remove('pin-flash'); }, 1600);
     var tg = $('.gtoggle', sec); if (tg) tg.focus({ preventScroll: true });
   }
-  announce('Ferramentas · ' + pinName(g.icon) + ': grupo ' + g.name + ' aberto; os outros grupos estão recolhidos.');
+  announce('group tools: grupo ' + g.name + ' aberto; os outros grupos estão recolhidos.');
 }
 function openTools() {
   var had = !!S.prevCollapsed;
   S.act = 'tools'; S.notice = null;
   if (had) { S.collapsed = S.prevCollapsed; S.prevCollapsed = null; }
   fullRender(null);
-  announce(had ? 'Ferramentas agrupadas. Recolhimento anterior restaurado.' : 'Ferramentas agrupadas.');
+  announce(had ? 'group tools. Recolhimento anterior restaurado.' : 'group tools.');
 }
 $('#vscAct').addEventListener('click', function (e) {
   var b = e.target.closest('[data-a]'); if (!b) return;
@@ -594,7 +696,7 @@ $('#vscAct').addEventListener('click', function (e) {
   else if (/^pin:/.test(a)) openPin(a.slice(4));
   else if (a === 'more') {
     var hid = $('#vscAct')._hidden || [];
-    openMenu(b, hid.map(function (g) { return { label: 'Ferramentas · ' + pinName(g.icon), ic: g.icon, go: function () { openPin(g.id); } }; }), { label: 'Itens ocultos da barra de atividades' });
+    openMenu(b, hid.map(function (g) { return { label: 'group tools · ' + pinName(g.icon), ic: g.icon, go: function () { openPin(g.id); } }; }), { label: 'Itens ocultos da barra de atividades' });
   }
   else if (a === 'gear') { toast({ kind: 'info', text: 'Menu Gerenciar (simulado).' }); }
   else { S.act = a; renderAct(); announce(b.title); }
@@ -713,20 +815,69 @@ function openDialog(anchor, o) {
 
 /* seletor de cor e ícone do grupo */
 function openStylePop(anchor, gid) {
-  var g = gById(gid); if (!g) return;
-  var n = document.createElement('div'); n.className = 'pop stylepop grp ' + g.color; n.setAttribute('role', 'dialog'); n.setAttribute('aria-label', 'Cor e ícone de ' + g.name);
+  if (!gById(gid)) return;
+  var n = document.createElement('div'); n.setAttribute('role', 'dialog'); n.setAttribute('aria-label', 'Cor e ícone de ' + gById(gid).name);
+  /* paleta + cor por código (HEX, RGB, HSL) + ícone */
+  n.innerHTML = '<div><div class="pop-t">Cor do grupo</div><div class="swatches" role="radiogroup" aria-label="Cor do grupo"></div></div>' +
+    '<div class="cc"><div class="pop-t">Cor por código</div><div class="cc-row"><label class="sr" for="ccFmt">Formato da cor</label><select id="ccFmt" class="cc-fmt">' + Object.keys(COLOR_FORMATS).map(function (k) { return '<option value="' + k + '">' + COLOR_FORMATS[k].label + '</option>'; }).join('') + '</select>' +
+    '<label class="sr" for="ccVal">Código da cor</label><input id="ccVal" class="cc-val" autocomplete="off" spellcheck="false" aria-describedby="ccHint ccErr"><span class="cc-prev grp" aria-hidden="true"></span></div>' +
+    '<div class="hint" id="ccHint"></div><div class="field-err" id="ccErr" role="alert" hidden></div><button type="button" class="btn primary cc-apply" data-cc-apply disabled>Aplicar</button></div>' +
+    '<div><div class="pop-t">Ícone</div><button type="button" class="btn" data-ico></button></div>';
+  var sws = $('.swatches', n), fmt = $('#ccFmt', n), val = $('#ccVal', n), hint = $('#ccHint', n), err = $('#ccErr', n), prev = $('.cc-prev', n), apply = $('[data-cc-apply]', n), ico = $('[data-ico]', n);
+  var lastCustom = isHexColor(colorOf(gById(gid))) ? colorOf(gById(gid)) : null; /* mantida enquanto o popover está aberto */
   function paint() {
-    n.className = 'pop stylepop grp ' + g.color;
-    n.innerHTML = '<div><div class="pop-t">Cor do grupo</div><div class="swatches" role="radiogroup" aria-label="Cor do grupo">' + COLORS.map(function (c) {
-      return '<button type="button" role="radio" class="sw grp ' + c[0] + '" data-c="' + c[0] + '" aria-checked="' + (c[0] === g.color) + '" aria-label="' + c[1] + '" title="' + c[1] + '" tabindex="' + (c[0] === g.color ? 0 : -1) + '">' + ic('check') + '</button>';
-    }).join('') + '</div></div><div><div class="pop-t">Ícone</div><button type="button" class="btn" data-ico>' + ic(g.icon, 'sm') + '<span>Ícone: ' + esc(g.icon) + '</span>' + ic('chevron-right', 'xs') + '</button></div>';
+    var g = gById(gid), curC = colorOf(g), custom = isHexColor(curC);
+    if (custom) lastCustom = curC;
+    n.className = 'pop stylepop grp ' + colorClass(g);
+    if (custom) n.dataset.gc = curC; else delete n.dataset.gc;
+    var all = (lastCustom ? [lastCustom] : []).concat(COLORS.map(function (c) { return c[0]; }));
+    sws.innerHTML = all.map(function (c) {
+      var hx = isHexColor(c);
+      return '<button type="button" role="radio" class="sw grp ' + (hx ? 'g-custom' : c) + '"' + (hx ? ' data-gc="' + esc(c) + '"' : '') + ' data-c="' + esc(c) + '" aria-checked="' + (c === curC) + '" aria-label="' + esc(cname(c)) + '" title="' + esc(cname(c)) + '" tabindex="' + (c === curC ? 0 : -1) + '">' + ic('check') + '</button>';
+    }).join('');
+    ico.innerHTML = ic(g.icon, 'sm') + '<span>Ícone: ' + esc(g.icon) + '</span>' + ic('chevron-right', 'xs');
+    paintCustom(n);
+    if (anchor && anchor.isConnected) placePop(n, anchor);
   }
   paint();
   function pick(k) {
-    if (k === g.color) return;
+    var g = gById(gid);
+    if (!g || !isValidColor(k) || k === colorOf(g)) return;
     commit(function () { g.color = k; return { op: 'Cor de “' + g.name + '”: ' + cname(k), say: 'Cor de ' + g.name + ': ' + cname(k) + ' (selecionada)', focus: null }; });
     paint(); var sw = $('.sw[data-c="' + k + '"]', n); if (sw) sw.focus();
   }
+  /* cor por código: o erro só aparece quando o valor parece completo; Aplicar só com valor válido */
+  function completeEnough() { var v = val.value; return fmt.value === 'hex' ? v.replace('#', '').length >= 3 : (v.match(/\d+/g) || []).length >= 3; }
+  function refresh() {
+    var r = parseColorInput(fmt.value, val.value), has = val.value.trim() !== '';
+    apply.disabled = !r.ok;
+    if (r.ok) { prev.dataset.gc = r.hex; paintCustom(n); prev.hidden = false; } else { delete prev.dataset.gc; prev.hidden = true; }
+    var showErr = has && !r.ok && completeEnough();
+    err.hidden = !showErr; err.innerHTML = showErr ? ic('circle-alert', 'xs') + esc(r.error) : '';
+    val.setAttribute('aria-invalid', showErr ? 'true' : 'false');
+    if (anchor && anchor.isConnected) placePop(n, anchor);
+  }
+  function setFormat() {
+    var f = COLOR_FORMATS[fmt.value]; val.placeholder = f.placeholder; hint.textContent = f.example;
+    val.maxLength = fmt.value === 'hex' ? 7 : 20; val.value = ''; val.inputMode = fmt.value === 'hex' ? 'text' : 'numeric'; refresh();
+  }
+  setFormat();
+  fmt.addEventListener('change', function () { setFormat(); val.focus(); });
+  val.addEventListener('input', function (e) {
+    var kind = e.inputType || '', how = kind.indexOf('delete') === 0 ? 'delete' : (kind === 'insertFromPaste' || kind === 'insertFromDrop' ? 'paste' : undefined);
+    var masked = maskColorInput(fmt.value, val.value, how);
+    if (masked !== val.value) val.value = masked;
+    refresh();
+  });
+  function applyCode() {
+    var r = parseColorInput(fmt.value, val.value);
+    if (!r.ok) { refresh(); announce(r.error); return; }
+    pick(r.hex);
+    var sw = $('.sw[data-c="' + r.hex + '"]', n); if (sw) sw.blur(); val.focus();
+    announce('Cor aplicada: ' + r.hex);
+  }
+  apply.addEventListener('click', applyCode);
+  val.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); applyCode(); } });
   n.addEventListener('click', function (e) {
     var s = e.target.closest('.sw'); if (s) { pick(s.dataset.c); return; }
     if (e.target.closest('[data-ico]')) { closePop(false); openPicker(anchor, { kind: 'group', id: gid }); }
@@ -747,7 +898,7 @@ var ICONS = Object.keys(I).filter(function (k) { return !/^(files|loader|chevron
 function openPicker(anchor, target) {
   var obj = target.kind === 'group' ? gById(target.id) : (findItem(target.id) || {}).it;
   if (!obj) return;
-  var colorCls = target.kind === 'group' ? obj.color : (findItem(target.id).g.color);
+  var colorGroup = target.kind === 'group' ? obj : findItem(target.id).g, colorCls = colorClass(colorGroup);
   var isGroup = target.kind === 'group', locked = isGroup && (target.pin || globalPinned(obj));
   var base = target.pin ? ICONS.filter(inCat) : ICONS;
   function blocked(k) {
@@ -758,7 +909,9 @@ function openPicker(anchor, target) {
     return '';
   }
   var note = target.pin ? 'Escolha um ícone fixável. Ele também passa a ser o ícone do grupo (uma operação só, com Desfazer).' : locked ? 'Este grupo está fixado: só ícones fixáveis e livres. Desafixe para usar outros.' : '';
-  var n = document.createElement('div'); n.className = 'pop picker grp ' + colorCls; n.setAttribute('role', 'dialog'); n.setAttribute('aria-label', (target.pin ? 'Escolha um ícone fixável para ' : 'Escolher ícone para ') + obj.name);
+  var n = document.createElement('div'); n.className = 'pop picker grp ' + colorCls; n.setAttribute('role', 'dialog');
+  if (isHexColor(colorOf(colorGroup))) { n.dataset.gc = colorOf(colorGroup); paintCustom(n); }
+  n.setAttribute('aria-label', (target.pin ? 'Escolha um ícone fixável para ' : 'Escolher ícone para ') + obj.name);
   n.innerHTML = '<div class="search"><span class="s-ic">' + ic('search', 'sm') + '</span><input type="search" placeholder="Buscar ícone (ex.: git, banco, nuvem)…" aria-label="Buscar ícone" autocomplete="off"></div>' +
     (note ? '<p class="pk-note">' + ic('info', 'xs') + '<span>' + esc(note) + '</span></p>' : '') +
     '<div class="pk-cur">' + ic(obj.icon, 'pk-preview') + '<span>Atual: ' + esc(obj.icon) + '</span></div><div data-rec></div><div class="pk-sec" data-lbl>Todos os ícones</div><div class="pk-grid" role="listbox" aria-label="Ícones" data-grid></div><div data-more></div>';
@@ -778,7 +931,7 @@ function openPicker(anchor, target) {
     var rc = S.recents.filter(function (k) { return I[k] && (!target.pin || inCat(k)); });
     rec.innerHTML = (!query.trim() && rc.length) ? '<div class="pk-sec">Recentes</div><div class="pk-grid small" role="listbox" aria-label="Ícones recentes">' + rc.map(function (k) { return cell(k, false); }).join('') + '</div>' : '';
     lbl.hidden = !!(!query.trim() && !rc.length) && false;
-    lbl.textContent = query.trim() ? list.length + (list.length === 1 ? ' ícone' : ' ícones') : (target.pin ? 'Ícones fixáveis (' + base.length + ')' : 'Todos os ícones');
+    lbl.textContent = query.trim() ? list.length + (list.length === 1 ? ' ícone' : ' ícones') : (target.pin ? 'Ícones fixáveis (' + base.length + ')' : 'Todos os ícones (' + base.length + ')');
     grid.innerHTML = part.length ? part.map(function (k, i) { return cell(k, i === 0); }).join('') : '<p class="pk-empty">Nenhum ícone para “' + esc(query.trim()) + '”. Tente em inglês, ex.: git.</p>';
     more.innerHTML = list.length > shown ? '<button type="button" class="pk-more" style="width:100%" data-more-btn>Mostrar mais (' + (list.length - shown) + ')</button>' : '';
     if (announceIt) announce(list.length ? list.length + (list.length === 1 ? ' ícone' : ' ícones') : 'Nenhum ícone encontrado');
@@ -834,14 +987,37 @@ function groupChoices(onPick, includeNew, current) {
 }
 function addItemMenu(gid) {
   var un = unassigned();
-  if (!un.length) return [{ head: 'Adicionar item' }, { label: 'Tudo agrupado.', ic: 'check', disabled: true }];
-  return [{ head: 'Adicionar item a este grupo' }].concat(un.map(function (e) { return { label: e.name, ic: e.icon, go: function () { placeItem({ type: 'tray', ext: e.id }, gid, Infinity); } }; }));
+  var entries = [{ head: 'Adicionar item a este grupo' }];
+  if (un.length) un.forEach(function (e) { entries.push({ label: e.name, ic: e.icon, go: function () { placeItem({ type: 'tray', ext: e.id }, gid, Infinity); } }); });
+  else entries.push({ label: 'Todas as extensões já estão em grupos.', ic: 'check', disabled: true });
+  entries.push({ sep: true }, { label: 'Comando do VS Code…', ic: 'terminal', go: function () { openCommandForm(pinAnchor(gid), gid); } });
+  return entries;
+}
+/* adiciona um comando livre do VS Code como item */
+function openCommandForm(anchor, gid) {
+  var g = gById(gid); if (!g) return;
+  var n = document.createElement('div'); n.className = 'pop fm'; n.setAttribute('role', 'dialog'); n.setAttribute('aria-label', 'Adicionar comando a ' + g.name);
+  n.innerHTML = '<label for="cmdName">Nome</label><input id="cmdName" maxlength="100" autocomplete="off"><label for="cmdId">Comando do VS Code</label><input id="cmdId" autocomplete="off" spellcheck="false" placeholder="ex.: workbench.action.terminal.toggleTerminal"><div class="field-err" id="cmdErr" hidden></div><div class="acts"><button type="button" class="btn primary" data-ok>Adicionar</button><button type="button" class="btn" data-cancel>Cancelar</button></div>';
+  var name = $('#cmdName', n), cmd = $('#cmdId', n), err = $('#cmdErr', n);
+  function submit() {
+    var nm = name.value.trim(), cm = cmd.value.trim();
+    var problem = !nm ? 'Dê um nome ao item.' : !cm ? 'Informe o comando.' : BLOCKED_COMMANDS.indexOf(cm) >= 0 ? 'Esse comando não pode ser usado.' : '';
+    name.setAttribute('aria-invalid', String(!nm)); cmd.setAttribute('aria-invalid', String(!!nm && !cm));
+    err.hidden = !problem; err.innerHTML = problem ? ic('circle-alert', 'xs') + esc(problem) : '';
+    if (problem) { (nm ? cmd : name).focus(); return; }
+    closePop(false);
+    placeItem({ type: 'command', name: nm, command: cm }, gid, Infinity);
+  }
+  n.addEventListener('click', function (e) { if (e.target.closest('[data-ok]')) submit(); else if (e.target.closest('[data-cancel]')) closePop(true); });
+  n.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); closePop(true); } else if (e.key === 'Enter') { e.preventDefault(); submit(); } });
+  openPop(anchor, n);
+  name.focus();
 }
 function groupMenu(gid) {
   var g = gById(gid), gs = cur().groups, idx = gs.indexOf(g);
   return [
     { label: 'Renomear', ic: 'pencil', go: function () { S.edit = { type: 'group', id: gid, sel: true }; render(null); announce('Renomear grupo ' + g.name + '. Enter confirma, Esc cancela.'); } },
-    { label: 'Cor e ícone', ic: 'palette', go: function () { var a = $('[data-fid="gk:' + cssq(gid) + '"]', app); openStylePop(a || btnOrg, gid); } },
+    { label: 'Cor e ícone', ic: 'palette', go: function () { var a = $('[data-fid="gk:' + cssq(gid) + '"]', app); openStylePop(a || btnScope, gid); } },
     { label: 'Mover para cima', ic: 'arrow-up', disabled: idx === 0, go: function () { moveGroupBy(gid, -1); } },
     { label: 'Mover para baixo', ic: 'arrow-down', disabled: idx === gs.length - 1, go: function () { moveGroupBy(gid, 1); } },
     { label: 'Adicionar item…', ic: 'plus', sub: function () { return addItemMenu(gid); } }
@@ -856,31 +1032,31 @@ function pinName(k) { return PIN_NAME[k] || k; }
 function pinnedGroups() { return S.data.global.groups.filter(function (g) { return g.pinned; }); }
 function globalPinned(g) { var o = S.data.global.groups.filter(function (x) { return x.id === g.id; })[0]; return !!(o && o.pinned); }
 function pinOwner(icon, exceptId) { return pinnedGroups().filter(function (x) { return x.icon === icon && x.id !== exceptId; })[0] || null; }
-function pinAnchor(gid) { return $('[data-fid="gk:' + cssq(gid) + '"]', app) || btnOrg; }
+function pinAnchor(gid) { return $('[data-fid="gk:' + cssq(gid) + '"]', app) || btnScope; }
 function pinMenuItems(g) {
   var gp = globalPinned(g);
-  if (S.scope !== 'global') return [{ label: gp ? 'Desafixar da barra de atividades' : 'Fixar na barra de atividades', hint: 'Itens fixados valem para todos os projetos; edite no escopo Global', ic: 'pin', soft: true }];
-  if (g.pinned) return [{ label: 'Desafixar da barra de atividades', hint: 'O ícone “' + pinName(g.icon) + '” sai da barra e fica livre', ic: 'pin', go: function () { unpinGroup(g.id); } }];
+  if (S.scope !== 'global') return [{ label: gp ? 'Desafixar da barra de atividades e da barra de status' : 'Fixar na barra de atividades e na barra de status', hint: 'Itens fixados valem para todos os projetos; edite no escopo Global', ic: 'pin', soft: true }];
+  if (g.pinned) return [{ label: 'Desafixar da barra de atividades e da barra de status', hint: 'O ícone “' + pinName(g.icon) + '” sai da barra e fica livre', ic: 'pin', go: function () { unpinGroup(g.id); } }];
   var owner = pinOwner(g.icon, g.id);
-  if (inCat(g.icon) && !owner) return [{ label: 'Fixar na barra de atividades', hint: 'Aparece na barra com o ícone “' + pinName(g.icon) + '”', ic: 'pin', go: function () { pinGroup(g.id); } }];
+  if (inCat(g.icon) && !owner) return [{ label: 'Fixar na barra de atividades e na barra de status', hint: 'Aparece na barra com o ícone “' + pinName(g.icon) + '”', ic: 'pin', go: function () { pinGroup(g.id); } }];
   if (owner) return [
-    { label: 'Fixar na barra de atividades', hint: 'O ícone “' + pinName(g.icon) + '” já é usado por “' + owner.name + '” (fixado).', ic: 'pin', soft: true },
+    { label: 'Fixar na barra de atividades e na barra de status', hint: 'O ícone “' + pinName(g.icon) + '” já é usado por “' + owner.name + '” (fixado).', ic: 'pin', soft: true },
     { label: 'Trocar o ícone deste grupo…', ic: 'palette', go: function () { openPinPicker(pinAnchor(g.id), g.id); } },
     { label: 'Desafixar “' + owner.name + '” e fixar este', ic: 'pin', go: function () { replacePin(owner.id, g.id); } }
   ];
-  return [{ label: 'Fixar na barra de atividades', hint: 'O ícone atual não é fixável: você escolherá um da lista e ele vira o ícone do grupo.', ic: 'pin', go: function () { openPinPicker(pinAnchor(g.id), g.id); } }];
+  return [{ label: 'Fixar na barra de atividades e na barra de status', hint: 'O ícone atual não é fixável: você escolherá um da lista e ele vira o ícone do grupo.', ic: 'pin', go: function () { openPinPicker(pinAnchor(g.id), g.id); } }];
 }
 function openPinPicker(anchor, gid) { openPicker(anchor, { kind: 'group', id: gid, pin: true }); }
 function pinGroup(gid) {
   commit(function () {
     var g = gById(gid); g.pinned = true;
-    return { op: '“' + g.name + '” fixado na barra de atividades', say: 'Grupo ' + g.name + ' fixado na barra de atividades com o ícone ' + pinName(g.icon) + '.', focus: 'gk:' + gid };
+    return { op: '“' + g.name + '” fixado na barra de atividades e na barra de status', say: 'Grupo ' + g.name + ' fixado na barra de atividades com o ícone ' + pinName(g.icon) + '.', focus: 'gk:' + gid };
   });
 }
 function unpinGroup(gid) {
   commit(function () {
     var g = gById(gid); delete g.pinned;
-    return { op: '“' + g.name + '” desafixado da barra de atividades', say: 'Grupo ' + g.name + ' desafixado. O ícone ' + pinName(g.icon) + ' saiu da barra e ficou livre.', focus: 'gk:' + gid };
+    return { op: '“' + g.name + '” desafixado da barra de atividades e da barra de status', say: 'Grupo ' + g.name + ' desafixado. O ícone ' + pinName(g.icon) + ' saiu da barra e ficou livre.', focus: 'gk:' + gid };
   });
 }
 function replacePin(otherId, gid) {
@@ -905,7 +1081,7 @@ function itemMenu(iid) {
   }
   return [
     { label: 'Mover para…', ic: 'move', sub: moveMenu },
-    { label: 'Trocar ícone', ic: 'palette', go: function () { var a = $('[data-fid="ik:' + cssq(iid) + '"]', app); openPicker(a || btnOrg, { kind: 'item', id: iid }); } },
+    { label: 'Trocar ícone', ic: 'palette', go: function () { var a = $('[data-fid="ik:' + cssq(iid) + '"]', app); openPicker(a || btnScope, { kind: 'item', id: iid }); } },
     { label: 'Renomear', ic: 'pencil', go: function () { S.edit = { type: 'item', id: iid, sel: true }; render(null); announce('Renomear item. Enter confirma, Esc cancela.'); } },
     { sep: true },
     { label: 'Remover do grupo', ic: 'trash-2', danger: true, go: function () { removeItem(iid); } }
@@ -915,21 +1091,23 @@ function itemMenu(iid) {
 /* ---------- mutações ---------- */
 function takeItem(d) {
   if (d.type === 'tray') return mk(EXTMAP[d.ext]);
+  if (d.type === 'command') return { id: 'i-new-' + (++uid), name: d.name, command: d.command, icon: CMD_ICON, cmd: true, fav: false, inst: true };
   var f = findItem(d.id); f.g.items.splice(f.i, 1); return f.it;
 }
 function placeItem(d, gid, index) {
   var pre = d.type === 'item' ? findItem(d.id) : null;
+  if (gid === null && cur().groups.length >= MAX_GROUPS) { announce('Limite de ' + MAX_GROUPS + ' grupos atingido.'); return; }
   commit(function () {
     var it = takeItem(d), g;
     if (gid === null) {
-      g = { id: 'g-' + (++uid), name: 'Novo grupo', icon: 'folder', color: COLORS[cur().groups.length % 9][0], items: [] };
+      g = newGroup();
       cur().groups.push(g);
       S.edit = { type: 'group', id: g.id, sel: true, fresh: true };
     } else g = gById(gid);
     var at = Math.max(0, Math.min(index, g.items.length));
     g.items.splice(at, 0, it); S.collapsed[g.id] = false;
     if (pre && pre.g.id === g.id && pre.i === at) return { skip: true, focus: 'ib:' + it.id };
-    var verb = d.type === 'tray' ? 'adicionado a' : 'movido para';
+    var verb = d.type === 'item' ? 'movido para' : 'adicionado a'; /* da bandeja: só move para o grupo, com aviso curto e Desfazer */
     var pos = ', posição ' + (at + 1) + ' de ' + g.items.length;
     return { op: it.name + ' ' + verb + ' ' + g.name, say: it.name + ' ' + verb + ' ' + g.name + pos + (gid === null ? '. Digite o nome do novo grupo.' : ''), focus: gid === null ? null : 'ib:' + it.id };
   });
@@ -949,7 +1127,7 @@ function moveGroup(id, index) {
     gs.splice(index, 0, g);
     if (i === index) return { skip: true };
     var m = 'Grupo ' + g.name + ' movido para posição ' + (index + 1) + ' de ' + gs.length;
-    return { op: m, say: m, focus: S.mode === 'org' ? 'gg:' + id : 'gt:' + id };
+    return { op: m, say: m, focus: canOrg() ? 'gg:' + id : 'gt:' + id };
   });
 }
 function moveGroupBy(id, dir) {
@@ -972,18 +1150,28 @@ function doDelete(gid) {
     S.confirmDel = null;
     var nb = gs[i] || gs[i - 1];
     var back = g.items.filter(function (x) { return x.ext && x.inst !== false; }).length;
-    return { op: 'Grupo “' + g.name + '” excluído', say: 'Grupo ' + g.name + ' excluído' + (back ? '; ' + pl(back, 'extensão voltou', 'extensões voltaram') + ' à bandeja' : '') + (globalPinned(g) ? '; o ícone ' + pinName(g.icon) + ' saiu da barra de atividades' : ''), focus: nb ? 'gt:' + nb.id : 'org' };
+    return { op: 'Grupo “' + g.name + '” excluído', say: 'Grupo ' + g.name + ' excluído' + (back ? '; ' + pl(back, 'extensão voltou', 'extensões voltaram') + ' à bandeja' : '') + (globalPinned(g) ? '; o ícone ' + pinName(g.icon) + ' saiu da barra de atividades' : ''), focus: nb ? 'gt:' + nb.id : null };
   });
 }
+function newGroup() { return { id: 'g-' + (++uid), name: 'Novo grupo', icon: 'folder', color: randomColor(cur().groups), items: [] }; }
 function createGroup() {
+  if (cur().groups.length >= MAX_GROUPS) { announce('Limite de ' + MAX_GROUPS + ' grupos atingido.'); toast({ text: 'Limite de ' + MAX_GROUPS + ' grupos atingido. Exclua um grupo para criar outro.' }); return; }
   commit(function () {
-    var g = { id: 'g-' + (++uid), name: 'Novo grupo', icon: 'folder', color: COLORS[cur().groups.length % 9][0], items: [] };
+    var g = newGroup();
     cur().groups.push(g); S.edit = { type: 'group', id: g.id, sel: true, fresh: true };
     return { op: 'Grupo criado', say: 'Grupo criado. Digite o nome e tecle Enter.', focus: null };
   });
 }
+/* O produto sugere um único grupo, "Qualidade e testes" (Verde, g-7), com dois comandos do VS Code. */
 function suggest() {
-  commit(function () { cur().groups = seedGroups(true).map(function (g) { g.items.forEach(function (i) { i.fav = false; }); return g; }); S.welcomeDone = true; return { op: 'Grupos sugeridos criados', say: 'Grupos sugeridos criados: 7 grupos.', focus: 'org' }; });
+  commit(function () {
+    cur().groups = [{ id: 'g-qualidade', name: 'Qualidade e testes', icon: 'flask-conical', color: 'g-7', items: [
+      { id: 'i-cmd-problemas', name: 'Problemas', icon: 'triangle-alert', cmd: true, fav: false, inst: true },
+      { id: 'i-cmd-testes', name: 'Testes', icon: 'flask-conical', cmd: true, fav: false, inst: true }
+    ] }];
+    S.welcomeDone = true;
+    return { op: 'Grupos sugeridos criados.', say: 'Grupo sugerido criado: Qualidade e testes.', focus: null };
+  });
 }
 function finishEdit(save) {
   var ed = S.edit; if (!ed) return;
@@ -1024,7 +1212,7 @@ function computeTarget(e) {
   var sec = el.closest('.group');
   if (!sec) return el.closest('.groups') ? drag.target : null;
   var gid = sec.dataset.gid, collapsed = sec.classList.contains('is-collapsed');
-  if (el.closest('.ghead') || collapsed) return { kind: 'end', gid: gid, sec: sec, expand: collapsed };
+  if (el.closest('.ghead') || collapsed || !canOrg()) return { kind: 'end', gid: gid, sec: sec, expand: collapsed };
   var ul = $('ul.items', sec); if (!ul) return null;
   var lis = $$(':scope > li.item', ul).filter(function (l) { return !l.classList.contains('is-source'); });
   for (var j = 0; j < lis.length; j++) { var rr = lis[j].getBoundingClientRect(); if (y < rr.top + rr.height / 2) return { kind: 'item', gid: gid, index: j, ref: lis[j], ul: ul, sec: sec }; }
@@ -1074,6 +1262,8 @@ scrollEl.addEventListener('dragstart', function (e) {
     if (drag.type === 'group') { var gs = $('#groups', scrollEl); if (gs) gs.classList.add('reorder'); }
   }, 0);
 });
+/* dragenter também precisa ser cancelado: a dica de soltar é recriada a cada dragover e, sem isso, o Chromium perde o alvo (sem evento drop) */
+scrollEl.addEventListener('dragenter', function (e) { if (drag) e.preventDefault(); });
 scrollEl.addEventListener('dragover', function (e) {
   if (!drag) return;
   var t = computeTarget(e); drag.target = t;
@@ -1153,8 +1343,10 @@ function kbKey(e) {
     if (k === 'Escape') { e.preventDefault(); e.stopPropagation(); var s1 = S.kb.s, kd2 = S.kb.kind; restore(s1); render(kd2 + ':' + id); announce('Movimento cancelado'); return; }
     return;
   }
-  if (S.mode !== 'org' || S.kb) return;
-  if (e.altKey && (k === 'ArrowUp' || k === 'ArrowDown')) {
+  if (!canOrg()) return;
+  var pickKey = (k === ' ' && t.dataset.kbpick) || (k === 'Enter' && t.classList.contains('grip'));
+  if (S.kb && !pickKey) return;
+  if (e.altKey && !S.kb && (k === 'ArrowUp' || k === 'ArrowDown')) {
     e.preventDefault();
     commit(function () {
       var r = kbShift(type, id, 0, k === 'ArrowUp' ? -1 : 1);
@@ -1163,11 +1355,14 @@ function kbKey(e) {
     });
     return;
   }
-  if ((k === ' ' && t.dataset.kbpick) || (k === 'Enter' && t.classList.contains('grip'))) {
+  if (pickKey) {
     e.preventDefault();
+    /* pegar outro elemento com um já pego cancela o primeiro (o movimento dele é desfeito) e avisa */
+    var cancelled = '';
+    if (S.kb) { cancelled = 'Movimento de ' + nameOf(S.kb.type, S.kb.id) + ' cancelado. '; restore(S.kb.s); S.kb = null; }
     S.kb = { type: type, id: id, s: snap(), kind: kind };
     render(fidNow);
-    announce(nameOf(type, id) + ' pego. Use as setas para cima e para baixo para mover' + (type === 'item' ? ', as setas para a direita e esquerda trocam de grupo' : '') + ', Espaço solta, Esc cancela.');
+    announce(cancelled + nameOf(type, id) + ' pego. Use as setas para cima e para baixo para mover' + (type === 'item' ? ', as setas para a direita e esquerda trocam de grupo' : '') + ', Espaço solta, Esc cancela.');
   }
 }
 app.addEventListener('keydown', kbKey);
@@ -1175,10 +1370,6 @@ app.addEventListener('keydown', kbKey);
 /* ---------- cliques e edição ---------- */
 app.addEventListener('click', function (e) {
   var t = e.target;
-  var sty = t.closest('[data-style]');
-  if (sty && S.mode === 'org') { e.preventDefault(); openStylePop(sty.closest('.gtoggle'), sty.dataset.style); return; }
-  var ie = t.closest('[data-iconedit]');
-  if (ie && S.mode === 'org') { e.preventDefault(); openPicker(ie.closest('.ibtn'), { kind: 'item', id: ie.dataset.iconedit }); return; }
   var b = t.closest('[data-act]'); if (!b) return;
   var a = b.dataset.act, gid = b.dataset.gid, iid = b.dataset.iid;
   switch (a) {
@@ -1193,7 +1384,7 @@ app.addEventListener('click', function (e) {
       S.trayCollapsed = !c; $('#tray', scrollEl).classList.toggle('is-collapsed', S.trayCollapsed); b.setAttribute('aria-expanded', S.trayCollapsed ? 'false' : 'true'); break;
     }
     case 'run': {
-      var f = findItem(iid); if (!f || S.mode === 'org') return;
+      var f = findItem(iid); if (!f) return; /* clicar no item sempre o executa */
       if (f.it.inst === false) {
         openDialog(b, { title: 'Extensão não instalada', text: '“' + f.it.name + '”: esta extensão não está instalada.', btns: [
           { label: 'Ver no Marketplace', go: function () { toast({ kind: 'info', text: 'Abriria a página de ' + f.it.name + ' no Marketplace (simulado).' }); } },
@@ -1225,8 +1416,11 @@ app.addEventListener('click', function (e) {
     case 'dismiss-un': S.dismissed.un = true; render(null); break;
     case 'dismiss-hint': S.dismissed.hint = true; render(null); break;
     case 'show-broken': S.brokenOnly = !S.brokenOnly; render(); announce(S.brokenOnly ? 'Mostrando só itens quebrados' : 'Mostrando todos os itens'); break;
-    case 'show-tray': S.mode = 'org'; fullRender(null); var tr = $('#tray', scrollEl); if (tr) { tr.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); var ad = $('.add', tr); if (ad) ad.focus({ preventScroll: true }); } announce('Modo Organizar. Extensões não agrupadas à mostra.'); break;
-    case 'enter-org': S.mode = 'org'; fullRender('org'); announce('Modo Organizar ativado.'); break;
+    case 'show-tray': {
+      fullRender(null);
+      var tr = $('#tray', scrollEl); if (tr) { tr.scrollIntoView({ block: 'nearest', behavior: reducedMotion() ? 'auto' : 'smooth' }); var ad = $('.add', tr); if (ad) ad.focus({ preventScroll: true }); }
+      announce('Extensões não agrupadas à mostra.'); break;
+    }
     case 'retry': S.errBanner = false; render(null); announce('Tentando salvar de novo.'); simulateSave(); break;
     case 'discard': restore(lastSaved); S.errBanner = false; S.save = ''; fullRender(null); announce('Alterações descartadas.'); break;
     case 'suggest': suggest(); break;
@@ -1238,7 +1432,7 @@ app.addEventListener('click', function (e) {
 });
 scrollEl.addEventListener('dblclick', function (e) {
   var gn = e.target.closest('.gname');
-  if (gn && S.mode === 'org') { var sec = gn.closest('.group'); S.edit = { type: 'group', id: sec.dataset.gid, sel: true }; render(null); }
+  if (gn && canOrg()) { var sec = gn.closest('.group'); S.edit = { type: 'group', id: sec.dataset.gid, sel: true }; render(null); }
 });
 scrollEl.addEventListener('keydown', function (e) {
   var inp = e.target.closest && e.target.closest('[data-edit]'); if (!inp) return;
@@ -1261,7 +1455,6 @@ scrollEl.addEventListener('focusout', function (e) {
 var searchT;
 qEl.addEventListener('input', function () {
   S.q = qEl.value; S.searchTray = false;
-  if (S.q.trim()) S.mode = 'use';
   S.edit = null; render(); syncTop();
   clearTimeout(searchT);
   searchT = setTimeout(function () {
@@ -1272,23 +1465,19 @@ qEl.addEventListener('input', function () {
 qEl.addEventListener('keydown', function (e) { if (e.key === 'Escape' && qEl.value) { e.preventDefault(); e.stopPropagation(); clearSearch(true); } });
 function clearSearch(keepFocus) { qEl.value = ''; S.q = ''; S.searchTray = false; render(null); syncTop(); if (keepFocus) qEl.focus(); announce('Busca limpa'); }
 $('#qClear').addEventListener('click', function () { clearSearch(true); });
-btnOrg.addEventListener('click', function () {
-  if (btnOrg.disabled) return;
-  S.mode = S.mode === 'org' ? 'use' : 'org'; S.edit = null; S.kb = null; S.confirmDel = null; closePop(false);
-  fullRender(null);
-  announce(S.mode === 'org' ? 'Modo Organizar ativado. Arraste pela alça, ou use Espaço e setas, ou o menu ⋯ Mover para.' : 'Modo Organizar concluído.');
-});
 function setTab(v) {
-  S.tab = v; if (v === 'fav') { S.mode = 'use'; S.edit = null; }
+  S.tab = v; if (v === 'fav') S.edit = null;
   fullRender(null); announce(v === 'fav' ? 'Mostrando favoritos' : 'Mostrando todas');
 }
 $('#segAll').addEventListener('click', function () { setTab('all'); });
 $('#segFav').addEventListener('click', function () { setTab('fav'); });
 btnScope.addEventListener('click', function () {
-  openMenu(btnScope, [
+  var entries = [
     { label: 'Global', hint: 'Vale para todos os projetos', radio: true, checked: S.scope === 'global', go: function () { setScope('global'); } },
-    { label: 'Este projeto', hint: S.noWorkspace ? 'Abra uma pasta para usar este escopo.' : 'Só neste projeto; prevalece sobre o global', radio: true, checked: S.scope === 'project', disabled: S.noWorkspace, go: function () { setScope('project'); } }
-  ], { label: 'Escopo' });
+    { label: 'Este projeto', hint: S.noWorkspace ? 'Abra uma pasta para usar este escopo.' : S.noTrust ? 'Pasta não confiável: confie na pasta para usar este escopo.' : 'Só neste projeto; prevalece sobre o global', radio: true, checked: S.scope === 'project', disabled: S.noWorkspace || S.noTrust, go: function () { setScope('project'); } }
+  ];
+  if (S.scope === 'project' && S.projectOwn) entries.push({ sep: true }, { label: 'Voltar ao global…', ic: 'undo-2', go: function () { askReset(); } });
+  openMenu(btnScope, entries, { label: 'Escopo' });
 });
 function setScope(s) {
   if (s === S.scope) { btnScope.focus(); return; }
@@ -1310,10 +1499,10 @@ document.addEventListener('keydown', function (e) {
 function load(kind) {
   closePop(false); var t0 = $('.toast', overlay); if (t0) t0.remove();
   S = {
-    dataset: kind, scope: 'global', mode: 'use', tab: 'all', q: '', collapsed: {}, trayCollapsed: null, trayQ: '', searchTray: false, brokenOnly: false,
+    dataset: kind, scope: 'global', tab: 'all', q: '', collapsed: {}, trayCollapsed: null, trayQ: '', searchTray: false, brokenOnly: false,
     dismissed: {}, welcomeDone: false, edit: null, confirmDel: null, kb: null, errBanner: false, save: '', projectOwn: false, loading: false, resCount: 0,
     act: 'tools', prevCollapsed: null,
-    recents: ['git-branch', 'sparkles', 'database'], errSim: $('#pvErr').checked, noWorkspace: $('#pvNoWs').checked, readOnly: $('#pvRo').checked, projMissing: $('#pvMiss').checked, notice: null
+    recents: ['git-branch', 'sparkles', 'database'], errSim: $('#pvErr').checked, noWorkspace: $('#pvNoWs').checked, noTrust: $('#pvTrust').checked, projMissing: $('#pvMiss').checked, notice: null
   };
   var groups = kind === 'full' ? seedGroups(true) : kind === 'empty' ? seedGroups(false) : [];
   var pc = $('input[name=slots]:checked'), pn = pc ? +pc.value : 0;
@@ -1326,6 +1515,7 @@ function load(kind) {
 function setTheme(v) {
   document.documentElement.setAttribute('data-theme', v);
   document.body.className = v === 'dark' ? 'vscode-dark' : v === 'light' ? 'vscode-light' : 'vscode-high-contrast';
+  paintCustom();
   if (pop) placePop(pop.node, pop.anchor);
 }
 function setWidth(w) { $('#vsc').style.setProperty('--w', w + 'px'); $('#pvW').value = w; $('#pvWo').textContent = w + ' px'; if (pop) closePop(false); if (S.data) renderStatus(); hideHover(true); }
@@ -1344,9 +1534,9 @@ $('#pvMiss').addEventListener('change', function (e) {
   if (S.scope === 'project') setScope('global');
   announce(S.projMissing ? 'Simulação: o primeiro grupo fixado não existe no projeto.' : 'Simulação desligada.');
 });
-$('#pvRo').addEventListener('change', function (e) {
-  S.readOnly = e.target.checked; if (S.readOnly) { S.mode = 'use'; S.edit = null; S.kb = null; }
-  fullRender(null);
+$('#pvTrust').addEventListener('change', function (e) {
+  S.noTrust = e.target.checked;
+  if (S.noTrust && S.scope === 'project') setScope('global');
 });
 $('#pvRm').addEventListener('change', function (e) { document.documentElement.classList.toggle('pv-reduce', e.target.checked); });
 $('#pvLoad').addEventListener('click', function () {
@@ -1354,13 +1544,15 @@ $('#pvLoad').addEventListener('click', function () {
   setTimeout(function () { S.loading = false; fullRender(null); announce('Dados carregados.'); }, 1800);
 });
 $('#pvReset').addEventListener('click', function () {
-  ['pvErr', 'pvNoWs', 'pvRo', 'pvRm', 'pvMiss'].forEach(function (id) { $('#' + id).checked = false; });
+  ['pvErr', 'pvNoWs', 'pvTrust', 'pvRm', 'pvMiss'].forEach(function (id) { $('#' + id).checked = false; });
   document.documentElement.classList.remove('pv-reduce');
   var r = $('input[name=data]:checked'); load(r ? r.value : 'full');
 });
 
 $$('[data-ic]').forEach(function (el) { el.innerHTML = ic(el.dataset.ic, el.dataset.icsm ? 'sm' : ''); });
 window.addEventListener('resize', function () { renderAct(); });
+/* o simulador ocupa a altura do painel de controles: reavalia os ícones que cabem na barra de atividades quando ela muda de altura */
+if (window.ResizeObserver) { var lastActH = 0; new ResizeObserver(function () { var h = $('#vscAct').clientHeight; if (h !== lastActH) { lastActH = h; if (S.data) renderAct(); } }).observe($('#vscAct')); }
 setWidth(320);
 load('full');
 })();

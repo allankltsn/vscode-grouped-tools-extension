@@ -184,6 +184,7 @@ Spinner em reduced-motion vira indicador estático (ícone `loader` parado + tex
 - Alterado: stroke de ícones 1.5 -> 1.75 (`icons.js`/CSS); raios 3-5 -> 6-12; abas sublinhadas -> segmentado.
 - Removido: borda entre grupos, caixa do contexto, formulário fixo "Personalizar grupos" (vira edição inline).
 - Novos ícones Lucide a incluir localmente: `grip-vertical`, `chevron-right`, `check`, `x`, `pencil`, `circle-alert`, `info`, `circle-dashed`, `search-x`, `loader`, `settings` (licença ISC já presente).
+- Protótipo alinhado ao produto 0.1.1 (04/11/2026), sem mudar tokens: botão Organizar removido (organização sempre ativa; `.is-org` virou `.is-reorder`, sem reordenação em lista filtrada); popover de cor com cor por código (`.cc*`) e `#rrggbb` próprio (`.g-custom`, `--on-g`); `.swatches` com `auto-fill`; modo somente leitura removido; nome exibido "group tools"; ícone da barra de atividades `boxes`; barra de status só com ícone e número; card de hover com ícone codicon por linha; bandeja sempre arrastável e sem opção de ocultar ícone.
 
 ## 9. Achados e dúvidas em aberto
 - **UI-1** Contraste de `--g` (faixa/chip) e de `--g-text` sobre `--g-bg` nos 4 temas não foi medido com ferramenta; laranja e âmbar são limítrofes em branco. Dono: QA mede; ui-designer ajusta mistura (55%) ou os hex.

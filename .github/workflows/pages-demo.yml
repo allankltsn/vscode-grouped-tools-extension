@@ -1,0 +1,36 @@
+# Publica o protótipo (HTML estático, sem build) no GitHub Pages.
+# Fonte única: docs/design/redesenho/prototipo/. Pré-requisito (uma vez):
+# Settings > Pages > Build and deployment > Source = "GitHub Actions".
+name: Demo (GitHub Pages)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/design/redesenho/prototipo/**"
+      - ".github/workflows/pages-demo.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/design/redesenho/prototipo
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -4,6 +4,7 @@
 </picture>
 
 <p align="center">
+  <a href="https://allankltsn.github.io/vscode-grouped-tools-extension/"><img src="https://img.shields.io/badge/Demo%20ao%20vivo-16a34a?style=for-the-badge&logo=githubpages&logoColor=white" alt="Demo ao vivo do painel"></a>&nbsp;
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Changelog-0ea5a4?style=for-the-badge&logo=readme&logoColor=white" alt="Changelog"></a>&nbsp;
   <a href="docs/design/redesenho/teste-manual.md"><img src="https://img.shields.io/badge/Teste%20manual-2dd4bf?style=for-the-badge&logo=checkmarx&logoColor=black" alt="Roteiro de teste manual"></a>&nbsp;
   <a href="https://github.com/allankltsn/vscode-grouped-tools-extension/issues"><img src="https://img.shields.io/badge/Issues-3b82f6?style=for-the-badge&logo=github&logoColor=white" alt="Issues no GitHub"></a>
@@ -25,6 +26,12 @@ Ela agrupa atalhos; não move as interfaces originais das extensões.
 
 > [!NOTE]
 > Esta versão ainda não foi verificada dentro de um VS Code real: os testes automáticos rodam em Node e a interface foi exercitada em um navegador headless. O roteiro para conferir à mão está em [docs/design/redesenho/teste-manual.md](docs/design/redesenho/teste-manual.md).
+
+## <img src="assets/icons/teal/sparkles.svg" width="22" align="top"> Demo ao vivo
+
+Experimente o painel no navegador, sem instalar nada: **[abrir a demo](https://allankltsn.github.io/vscode-grouped-tools-extension/)**.
+
+É um protótipo estático com dados de exemplo. Dá para arrastar itens, trocar a cor e o ícone dos grupos, fixar grupos na barra de atividades e de status, e alternar tema (escuro, claro e alto contraste) e largura da barra lateral. Nada é salvo e tudo volta ao original ao recarregar. A demo simula o painel; ela não é a extensão, e o comportamento real só aparece no VS Code. O código fica em [docs/design/redesenho/prototipo](docs/design/redesenho/prototipo) e é publicado pelo GitHub Pages a cada alteração na `main`.
 
 ## <img src="assets/icons/teal/rocket.svg" width="22" align="top"> Início rápido
 

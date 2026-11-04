@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Protótipo - Ferramentas agrupadas (painel redesenhado)</title>
+<title>Protótipo - group tools (painel redesenhado)</title>
 <link rel="stylesheet" href="prototipo.css">
 </head>
 <body class="vscode-dark">
 
 <header class="pv-head">
-  <h1>Ferramentas agrupadas - protótipo do painel redesenhado</h1>
-  <p>Protótipo para validação, não aprovado. Nada é salvo de verdade: os dados são de exemplo e voltam ao original ao recarregar. Use os controles à esquerda para mudar tema, largura e estado; use o painel simulado à direita como na barra lateral do VS Code.</p>
+  <h1>group tools - protótipo do painel redesenhado</h1>
+  <p>Protótipo fiel ao produto na versão 0.1.1, para validação, não aprovado. Nada é salvo de verdade: os dados são de exemplo e voltam ao original ao recarregar. Use os controles à esquerda para mudar tema, largura e estado; use o painel simulado à direita como na barra lateral do VS Code.</p>
 </header>
 
 <div class="pv-stage">
@@ -56,7 +56,7 @@
       <label class="pv-chk"><input type="checkbox" id="pvErr"><span>Falha ao salvar (próxima alteração)</span></label>
       <label class="pv-chk"><input type="checkbox" id="pvNoWs"><span>Sem pasta aberta (desabilita "Este projeto")</span></label>
       <label class="pv-chk"><input type="checkbox" id="pvMiss"><span>Em "Este projeto", o 1º grupo fixado não existe (clique no ícone dele)</span></label>
-      <label class="pv-chk"><input type="checkbox" id="pvRo"><span>Configuração por pasta (somente leitura)</span></label>
+      <label class="pv-chk"><input type="checkbox" id="pvTrust"><span>Pasta não confiável (Workspace Trust): só o escopo Global</span></label>
       <label class="pv-chk"><input type="checkbox" id="pvRm"><span>Reduzir movimento</span></label>
       <div class="pv-seg">
         <button type="button" id="pvLoad">Mostrar carregando</button>
@@ -68,10 +68,10 @@
       <ul class="pv-log" id="pvLog" aria-label="Últimos anúncios do leitor de tela"><li>Nenhum anúncio ainda.</li></ul>
     </fieldset>
     <fieldset>
-      <legend>Atalhos (modo Organizar)</legend>
+      <legend>Atalhos (organização sempre ativa)</legend>
       <ul class="pv-help">
-        <li><kbd>Espaço</kbd> na alça ou no item: pega; setas movem; <kbd>←</kbd><kbd>→</kbd> trocam de grupo; <kbd>Espaço</kbd> solta; <kbd>Esc</kbd> devolve.</li>
-        <li><kbd>Alt</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd>: move um passo sem pegar.</li>
+        <li><kbd>Espaço</kbd> ou <kbd>Enter</kbd> na alça: pega; setas movem; <kbd>←</kbd><kbd>→</kbd> trocam de grupo; <kbd>Espaço</kbd> solta; <kbd>Esc</kbd> devolve. Não há reordenação em lista filtrada (busca, favoritos, só quebrados).</li>
+        <li><kbd>Alt</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> no item ou no grupo: move um passo sem pegar.</li>
         <li><kbd>Ctrl</kbd>+<kbd>Z</kbd>: desfaz a última alteração.</li>
         <li>Barra de status: <kbd>Tab</kbd> até um item fixado abre o card (como o tooltip nativo no foco); <kbd>Esc</kbd> fecha; <kbd>Enter</kbd> abre o grupo.</li>
         <li><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd>: recolhe ou expande todos os grupos.</li>
@@ -85,10 +85,10 @@
     <div class="vsc" id="vsc">
       <nav class="vsc-act" id="vscAct" aria-label="Barra de atividades simulada (nativa do VS Code)"></nav>
       <section class="vsc-side" id="vscSide" aria-label="Barra lateral simulada do VS Code">
-        <div class="vsc-side-t"><span id="vscTitle">Ferramentas agrupadas</span><span data-ic="ellipsis" aria-hidden="true"></span></div>
-        <div class="vsc-ph" id="vscPh" role="note">Vista nativa simulada. Clique no ícone Ferramentas (ou num ícone fixado) para voltar ao painel.</div>
+        <div class="vsc-side-t"><span id="vscTitle">group tools</span><span data-ic="ellipsis" aria-hidden="true"></span></div>
+        <div class="vsc-ph" id="vscPh" role="note">Vista nativa simulada. Clique no ícone group tools (ou num ícone fixado) para voltar ao painel.</div>
 
-        <main class="app" id="app" aria-label="Ferramentas agrupadas">
+        <main class="app" id="app" aria-label="group tools">
           <header class="top">
             <div class="row">
               <div class="search">
@@ -97,7 +97,6 @@
                 <button type="button" class="clear" id="qClear" aria-label="Limpar busca" hidden data-ic="x" data-icsm="1"></button>
               </div>
               <button type="button" class="btn-org btn-fold" id="btnFold" data-fid="fold"></button>
-              <button type="button" class="btn-org" id="btnOrg" aria-pressed="false" data-fid="org"></button>
             </div>
             <div class="row">
               <div class="seg" role="group" aria-label="Filtro">
@@ -114,7 +113,7 @@
 
           <div class="overlay" id="overlay"></div>
           <div class="sr" id="live" aria-live="polite" aria-atomic="true"></div>
-          <p class="sr" id="kbhelp">Em modo Organizar: Espaço pega o item; setas movem; setas para os lados trocam de grupo; Espaço solta; Esc cancela. Alt mais seta move um passo.</p>
+          <p class="sr" id="kbhelp">Alça de mover: Espaço ou Enter pega o item ou o grupo; setas movem; setas para os lados trocam de grupo; Espaço solta; Esc cancela. Alt mais seta para cima ou para baixo move um passo em qualquer item ou grupo.</p>
         </main>
       </section>
       <div class="vsc-editor" aria-hidden="true"><i style="width:180px"></i><i style="width:140px"></i><i style="width:200px"></i></div>
